@@ -4,7 +4,7 @@
 <base target="_top">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Nico Days · Direct v1</title>
+<title>Nico Days · Direct v2</title>
 <style>
 :root{
   --ink:#26352f;--muted:#6f7c74;--cream:#fffaf0;--green:#6f9276;
@@ -371,6 +371,262 @@ h1{margin:0;font-size:clamp(32px,4.4vw,50px);letter-spacing:-.045em}
   letter-spacing:.04em
 }
 
+
+.preselect-panel{
+  margin:0 0 13px;
+  padding:0;
+  border:1px solid rgba(72,102,84,.14);
+  border-radius:18px;
+  background:rgba(255,255,255,.52);
+  overflow:hidden;
+}
+.preselect-panel summary{
+  cursor:pointer;
+  list-style:none;
+  padding:12px 14px;
+  color:var(--green-dark);
+  font-size:12px;
+  font-weight:950;
+  user-select:none;
+}
+.preselect-panel summary::-webkit-details-marker{display:none}
+.preselect-panel[open] summary{
+  border-bottom:1px solid rgba(72,102,84,.10);
+  background:rgba(220,232,216,.35);
+}
+.preselect-grid{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:10px;
+  padding:13px 14px 8px;
+}
+.preselect-grid label{
+  min-width:0;
+  display:flex;
+  flex-direction:column;
+  gap:5px;
+}
+.preselect-grid label>span{
+  color:var(--muted);
+  font-size:9px;
+  font-weight:950;
+  text-transform:uppercase;
+  letter-spacing:.055em;
+}
+.preselect-grid select,
+.preselect-grid input{
+  width:100%;
+  min-width:0;
+  padding:9px 10px;
+  border:1px solid var(--line);
+  border-radius:11px;
+  background:#fffdf7;
+  color:var(--ink);
+}
+.preselect-grid small{
+  color:var(--muted);
+  font-size:9px;
+  line-height:1.25;
+}
+.preselect-actions{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  padding:4px 14px 13px;
+}
+.auto-load-summary{
+  margin:0 0 12px;
+  padding:9px 12px;
+  border-radius:14px;
+  background:rgba(220,232,216,.48);
+  color:var(--green-dark);
+  font-size:11px;
+  font-weight:850;
+  line-height:1.4;
+}
+
+/* Pendientes: información primero, acciones después */
+.backlog-item .grow,
+.zip-item .grow{min-width:0}
+.backlog-item .grow strong,
+.zip-item .grow strong{
+  white-space:normal;
+  overflow:visible;
+  text-overflow:clip;
+  overflow-wrap:anywhere;
+  line-height:1.25;
+}
+.backlog-item .sub,
+.zip-item .sub{
+  margin-top:3px;
+  line-height:1.35;
+  overflow-wrap:anywhere;
+}
+
+/* Móvil */
+@media(max-width:700px){
+  .preselect-grid{
+    grid-template-columns:1fr 1fr;
+  }
+
+  .builder-section{
+    padding:14px;
+  }
+
+  .item-grid{
+    gap:9px;
+  }
+
+  .work-card{
+    grid-template-columns:68px minmax(0,1fr);
+    gap:10px;
+    min-height:0;
+    padding:47px 10px 10px;
+    border-radius:17px;
+  }
+  .work-card .order-tools{
+    top:8px;
+    left:10px;
+    right:10px;
+    justify-content:space-between;
+  }
+  .work-card .drag-handle{
+    height:28px;
+    padding:0 9px;
+  }
+  .work-card .order-badge{
+    min-width:28px;
+    height:28px;
+  }
+  .work-card .work-visual{
+    align-self:start;
+    min-height:68px;
+    border-radius:14px;
+  }
+  .work-card .work-visual img{
+    width:64px;
+    height:64px;
+  }
+  .work-card .item-copy{
+    padding:0;
+    justify-content:flex-start;
+  }
+  .work-card .work-title{
+    font-size:12px;
+    line-height:1.22;
+  }
+  .work-card .work-meta{
+    font-size:10px;
+    line-height:1.3;
+  }
+  .work-card .work-controls{
+    grid-template-columns:minmax(0,1fr) 82px;
+    gap:6px;
+    margin-top:7px;
+  }
+  .work-card .work-controls input,
+  .work-card .base-time{
+    padding:7px 8px;
+    font-size:10px;
+  }
+
+  .routine-card{
+    grid-template-columns:68px minmax(0,1fr);
+    gap:10px;
+    min-height:0;
+    padding:10px;
+    border-radius:17px;
+  }
+  .routine-card .routine-visual img{
+    width:64px;
+    height:64px;
+  }
+  .routine-card .item-copy{padding-right:27px}
+  .routine-card .item-time-row{
+    grid-template-columns:minmax(0,1fr) 82px;
+    gap:6px;
+  }
+
+  .backlog-item,
+  .zip-item{
+    display:grid;
+    grid-template-columns:10px minmax(0,1fr);
+    gap:8px 9px;
+    align-items:start;
+    padding:11px;
+    border-radius:15px;
+  }
+  .backlog-item .status-dot,
+  .zip-item .status-dot{
+    margin-top:3px;
+  }
+  .backlog-item .grow,
+  .zip-item .grow{
+    width:100%;
+  }
+  .backlog-item .grow strong,
+  .zip-item .grow strong{
+    font-size:12px;
+    line-height:1.22;
+  }
+  .backlog-item .sub,
+  .zip-item .sub{
+    font-size:10px;
+  }
+  .backlog-item .item-badges,
+  .zip-item .item-badges{
+    margin-top:6px;
+  }
+  .backlog-item .list-actions,
+  .zip-item .list-actions{
+    grid-column:1/-1;
+    width:100%;
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:6px;
+  }
+  .backlog-item .list-actions .btn,
+  .zip-item .list-actions .btn{
+    width:100%;
+    min-width:0;
+    padding:8px 7px;
+    white-space:normal;
+    line-height:1.18;
+    text-align:center;
+    font-size:9.5px;
+  }
+}
+
+@media(max-width:470px){
+  .preselect-grid{
+    grid-template-columns:1fr;
+  }
+  .preselect-actions .btn{
+    flex:1 1 0;
+    padding:9px 8px;
+    font-size:10px;
+  }
+
+  .backlog-item .list-actions,
+  .zip-item .list-actions{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+
+  .work-card{
+    grid-template-columns:58px minmax(0,1fr);
+  }
+  .work-card .work-visual{
+    min-height:58px;
+  }
+  .work-card .work-visual img{
+    width:55px;
+    height:55px;
+  }
+  .work-card .work-controls{
+    grid-template-columns:minmax(0,1fr) 72px;
+  }
+}
+
 </style>
 </head>
 <body>
@@ -425,7 +681,61 @@ h1{margin:0;font-size:clamp(32px,4.4vw,50px);letter-spacing:-.045em}
       <div><h3>Trabajo IACC</h3><div class="sub">Carga automática desde tus pendientes. Nico Days incorpora las tareas que caben antes de las 17:00, respetando tu rutina base.</div></div>
       <span class="pill">jornada de trabajo · 09:00–17:00</span>
     </div>
-    <div id="taskList" class="item-grid"></div>
+    
+    <details class="preselect-panel" id="preselectPanel">
+      <summary>⚙ Configurar preselección automática</summary>
+      <div class="preselect-grid">
+        <label>
+          <span>Orden de carga</span>
+          <select id="preselectOrder">
+            <option value="week">Semanas correlativas</option>
+            <option value="manual">Prioridad manual</option>
+            <option value="short">Más cortas primero</option>
+          </select>
+        </label>
+
+        <label>
+          <span>Comenzar desde</span>
+          <select id="preselectStartWeek">
+            <option value="auto">Primera semana pendiente</option>
+            <option value="1">Semana 1</option>
+            <option value="2">Semana 2</option>
+            <option value="3">Semana 3</option>
+            <option value="4">Semana 4</option>
+            <option value="5">Semana 5</option>
+            <option value="6">Semana 6</option>
+            <option value="7">Semana 7</option>
+            <option value="8">Semana 8</option>
+          </select>
+        </label>
+
+        <label>
+          <span>Tareas “General”</span>
+          <select id="preselectGeneral">
+            <option value="last">Al final</option>
+            <option value="first">Primero</option>
+            <option value="exclude">No incluir hoy</option>
+          </select>
+        </label>
+
+        <label>
+          <span>Máximo de tareas</span>
+          <input id="preselectMaxTasks" type="number" min="0" max="99" step="1" value="0">
+          <small>0 = llenar automáticamente hasta las 17:00</small>
+        </label>
+      </div>
+
+      <div class="preselect-actions">
+        <button id="applyPreselection" class="btn soft" type="button">Aplicar</button>
+        <button id="resetPreselection" class="btn ghost" type="button">Valores recomendados</button>
+      </div>
+    </details>
+
+    <div id="autoLoadSummary" class="auto-load-summary">
+      Preparando carga automática…
+    </div>
+
+<div id="taskList" class="item-grid"></div>
   </section>
 
   <div class="plan-controls">
@@ -825,7 +1135,7 @@ function canonicalAppPublic(value){
 }
 
 function toDateKeyPublic(value){
-  if(!value)return"";
+  if(value===null||value===undefined||value==="")return"";
 
   if(value instanceof Date&&!isNaN(value)){
     return new Intl.DateTimeFormat("en-CA",{
@@ -836,7 +1146,15 @@ function toDateKeyPublic(value){
     }).format(value);
   }
 
+  if(typeof value==="object"){
+    if(value.v!==undefined)return toDateKeyPublic(value.v);
+    if(value.f!==undefined)return toDateKeyPublic(value.f);
+    return"";
+  }
+
   const text=String(value).trim();
+
+  if(!text||text==="[object Object]")return"";
 
   const gvizDate=text.match(
     /Date\((\d+),(\d+),(\d+)(?:,\d+,\d+,\d+)?\)/
@@ -847,25 +1165,29 @@ function toDateKeyPublic(value){
     const month=+gvizDate[2]+1;
     const day=+gvizDate[3];
 
-    return(
-      `${year}-${String(month).padStart(2,"0")}-${String(day).padStart(2,"0")}`
-    );
+    return `${year}-${String(month).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
   }
 
   if(/^\d{4}-\d{2}-\d{2}$/.test(text))return text;
 
-  const parsed=new Date(text);
+  /* Sólo aceptar fechas reconocibles; nunca objetos convertidos a texto */
+  if(
+    /^\d{1,2}[\/-]\d{1,2}[\/-]\d{4}$/.test(text) ||
+    /^[A-Za-z]{3}\s[A-Za-z]{3}\s\d{1,2}\s\d{4}/.test(text)
+  ){
+    const parsed=new Date(text);
 
-  if(!isNaN(parsed)){
-    return new Intl.DateTimeFormat("en-CA",{
-      timeZone:"America/Santiago",
-      year:"numeric",
-      month:"2-digit",
-      day:"2-digit"
-    }).format(parsed);
+    if(!isNaN(parsed)){
+      return new Intl.DateTimeFormat("en-CA",{
+        timeZone:"America/Santiago",
+        year:"numeric",
+        month:"2-digit",
+        day:"2-digit"
+      }).format(parsed);
+    }
   }
 
-  return text.slice(0,10);
+  return"";
 }
 
 function publicTime(value){
@@ -897,6 +1219,145 @@ function publicTime(value){
   return m
     ? `${String(+m[1]).padStart(2,"0")}:${m[2]}`
     : "12:00";
+}
+
+
+const PRESELECT_DEFAULTS={
+  order:"week",
+  startWeek:"auto",
+  general:"last",
+  maxTasks:0
+};
+
+let preselectPrefs={...PRESELECT_DEFAULTS};
+
+function weekNumber(task){
+  const text=norm(task?.week||"");
+  const match=text.match(/(\d+)/);
+  return match?Number(match[1]):null;
+}
+
+function taskSourceOrder(task){
+  const match=String(task?.id||"").match(/(\d+)$/);
+  return match?Number(match[1]):Number(task?.row)||999999;
+}
+
+function loadPreselectPrefs(){
+  try{
+    const stored=JSON.parse(
+      localStorage.getItem("nicoDays.preselection.v2")||"{}"
+    );
+
+    preselectPrefs={
+      ...PRESELECT_DEFAULTS,
+      ...stored
+    };
+  }catch(_){
+    preselectPrefs={...PRESELECT_DEFAULTS};
+  }
+}
+
+function savePreselectPrefs(){
+  try{
+    localStorage.setItem(
+      "nicoDays.preselection.v2",
+      JSON.stringify(preselectPrefs)
+    );
+  }catch(_){}
+}
+
+function syncPreselectControls(){
+  const order=$("#preselectOrder");
+  if(!order)return;
+
+  order.value=preselectPrefs.order;
+  $("#preselectStartWeek").value=String(preselectPrefs.startWeek);
+  $("#preselectGeneral").value=preselectPrefs.general;
+  $("#preselectMaxTasks").value=Number(preselectPrefs.maxTasks)||0;
+}
+
+function readPreselectControls(){
+  preselectPrefs={
+    order:$("#preselectOrder")?.value||"week",
+    startWeek:$("#preselectStartWeek")?.value||"auto",
+    general:$("#preselectGeneral")?.value||"last",
+    maxTasks:Math.max(
+      0,
+      Number($("#preselectMaxTasks")?.value)||0
+    )
+  };
+
+  savePreselectPrefs();
+}
+
+function compareByWeek(a,b){
+  const aw=weekNumber(a);
+  const bw=weekNumber(b);
+
+  const generalMode=preselectPrefs.general;
+
+  const aGeneral=aw===null;
+  const bGeneral=bw===null;
+
+  if(aGeneral!==bGeneral){
+    if(generalMode==="first")return aGeneral?-1:1;
+    return aGeneral?1:-1;
+  }
+
+  if(aw!==null&&bw!==null&&aw!==bw)return aw-bw;
+
+  if(a.course!==b.course){
+    return String(a.course).localeCompare(
+      String(b.course),
+      "es",
+      {numeric:true}
+    );
+  }
+
+  return taskSourceOrder(a)-taskSourceOrder(b);
+}
+
+function selectWorkQueue(queue){
+  let selected=[...(queue||[])];
+
+  if(preselectPrefs.general==="exclude"){
+    selected=selected.filter(task=>weekNumber(task)!==null);
+  }
+
+  if(preselectPrefs.startWeek!=="auto"){
+    const start=Number(preselectPrefs.startWeek)||1;
+
+    selected=selected.filter(task=>{
+      const week=weekNumber(task);
+      return week===null||week>=start;
+    });
+  }
+
+  if(preselectPrefs.order==="short"){
+    selected.sort((a,b)=>{
+      const duration=(+a.duration||0)-(+b.duration||0);
+      if(duration!==0)return duration;
+      return compareByWeek(a,b);
+    });
+  }else if(preselectPrefs.order==="manual"){
+    selected.sort((a,b)=>{
+      const ao=Number(a.orderDay)||999999;
+      const bo=Number(b.orderDay)||999999;
+      if(ao!==bo)return ao-bo;
+      return compareByWeek(a,b);
+    });
+  }else{
+    selected.sort(compareByWeek);
+  }
+
+  if(preselectPrefs.maxTasks>0){
+    selected=selected.slice(
+      0,
+      preselectPrefs.maxTasks
+    );
+  }
+
+  return selected;
 }
 
 async function loadDashboardDirect(){
@@ -1080,32 +1541,29 @@ async function loadDashboardDirect(){
       task.iaccStatus==="En proceso"
     )
     .sort((a,b)=>{
-      const ao=
-        Number(a.orderDay)||
-        999999;
+      const aw=weekNumber(a);
+      const bw=weekNumber(b);
 
-      const bo=
-        Number(b.orderDay)||
-        999999;
-
-      if(ao!==bo)return ao-bo;
+      if(aw===null&&bw!==null)return 1;
+      if(aw!==null&&bw===null)return-1;
+      if(aw!==null&&bw!==null&&aw!==bw)return aw-bw;
 
       if(a.course!==b.course){
-        return a.course.localeCompare(
-          b.course
+        return String(a.course).localeCompare(
+          String(b.course),
+          "es",
+          {numeric:true}
         );
       }
 
-      return a.name.localeCompare(
-        b.name
-      );
+      return taskSourceOrder(a)-taskSourceOrder(b);
     });
 
-  const workQueue=pendingAll.filter(
-    task=>
-      !task.snoozeUntil ||
-      task.snoozeUntil<=today
-  );
+  const workQueue=pendingAll.filter(task=>{
+    const snooze=toDateKeyPublic(task.snoozeUntil);
+    task.snoozeUntil=snooze;
+    return !snooze||snooze<=today;
+  });
 
   const zipPending=allTasks
     .filter(task=>
@@ -1224,7 +1682,7 @@ async function loadDashboardDirect(){
 
   return{
     ok:true,
-    version:"Nico Days Direct 1.0",
+    version:"Nico Days Direct 2.0",
     responsible:"Nico",
     today,
     pendingTotal:pendingAll.length,
@@ -1267,9 +1725,31 @@ $("#heroCat").src=ASSETS.gato4;$("#cornerCat").src=ASSETS.gato2;
 
 function hydrateDashboard(data){
   dashboard=data;
-  routines=(data.routines||[]).map(r=>[r.activity,r.time,+r.duration||5,r.detail||""]);
-  tasks=(data.workQueue||[]).map(t=>({...t,duration:+t.duration||30,base:+t.baseTime||+t.duration||30,done:!!t.done}));
-  renderRoutines();renderTasks();renderBacklog();renderZip();updateCounters();createPlan();
+
+  loadPreselectPrefs();
+  syncPreselectControls();
+
+  routines=(data.routines||[]).map(r=>[
+    r.activity,
+    r.time,
+    +r.duration||5,
+    r.detail||""
+  ]);
+
+  tasks=selectWorkQueue(
+    (data.workQueue||[]).map(t=>({
+      ...t,
+      duration:+t.duration||30,
+      base:+t.baseTime||+t.duration||30,
+      done:!!t.done
+    }))
+  );
+
+  renderRoutines();
+  renderBacklog();
+  renderZip();
+  updateCounters();
+  createPlan();
 }
 async function refreshDashboard(message=""){
   setSync(
@@ -1400,7 +1880,7 @@ function renderTasks(){
 
       <div class="item-copy">
         <div class="work-title">${escapeHtml(t.name)}</div>
-        <div class="work-meta">${escapeHtml(t.product)} · ${escapeHtml(t.course)} · ${escapeHtml(t.iaccStatus)}</div>
+        <div class="work-meta">${escapeHtml(t.week||"General")} · ${escapeHtml(t.product)} · ${escapeHtml(t.course)}</div>
 
         <div class="work-controls">
           <div>
@@ -1459,7 +1939,10 @@ function renderTasks(){
 
       createPlan();
 
-      toast("Prioridad actualizada en esta sesión ✓");
+      preselectPrefs.order="manual";
+      savePreselectPrefs();
+      syncPreselectControls();
+      toast("Prioridad manual actualizada en esta sesión ✓");
     });
 
     card.addEventListener("dragend",()=>{
@@ -1491,8 +1974,9 @@ function renderBacklog(){
       ? `<a class="btn mini link-soft" href="${escapeHtml(t.url)}" target="_blank" rel="noopener noreferrer">↗ Documento</a>`
       : "";
 
-    const snooze=t.snoozeUntil && t.snoozeUntil>dashboard.today
-      ? `<span class="small-badge snooze">🌙 hasta ${escapeHtml(t.snoozeUntil)}</span>`
+    const validSnooze=toDateKeyPublic(t.snoozeUntil);
+    const snooze=validSnooze && validSnooze>dashboard.today
+      ? `<span class="small-badge snooze">🌙 hasta ${escapeHtml(validSnooze)}</span>`
       : "";
 
     item.innerHTML=`
@@ -1500,7 +1984,7 @@ function renderBacklog(){
 
       <div class="grow">
         <strong>${escapeHtml(t.name)}</strong>
-        <div class="sub">${escapeHtml(t.product)} · ${humanMin(t.duration)} · ${escapeHtml(t.course)}</div>
+        <div class="sub">${escapeHtml(t.week||"General")} · ${escapeHtml(t.product)} · ${humanMin(t.duration)} · ${escapeHtml(t.course)}</div>
 
         <div class="item-badges">
           <span class="small-badge">${escapeHtml(t.iaccStatus)}</span>
@@ -1530,24 +2014,29 @@ async function runBacklogAction(fn,id,message){
   if(!task)return;
 
   if(fn==="apiPrioritizeTask"){
-    const index=
-      tasks.findIndex(
-        item=>item.id===id
-      );
+    preselectPrefs.order="manual";
+    savePreselectPrefs();
+    syncPreselectControls();
+
+    const index=tasks.findIndex(item=>item.id===id);
 
     if(index>=0){
-      const [moved]=
-        tasks.splice(index,1);
-
+      const [moved]=tasks.splice(index,1);
       tasks.unshift(moved);
-
-      createPlan();
+    }else{
+      const source=(dashboard?.workQueue||[]).find(item=>item.id===id);
+      if(source){
+        tasks.unshift({
+          ...source,
+          duration:+source.duration||30,
+          base:+source.baseTime||+source.duration||30,
+          done:!!source.done
+        });
+      }
     }
 
-    toast(
-      "Priorizada en esta sesión ↑"
-    );
-
+    createPlan();
+    toast("Priorizada para hoy ↑");
     return;
   }
 
@@ -1755,7 +2244,27 @@ function createPlan(){
   plan=out;
 
   const work=workBlocks.sort((a,b)=>a.start-b.start);
-  $("#statEnd").textContent=work.length?minToTime(Math.max(...work.map(b=>b.end))):"—";
+  const lastEnd=work.length?Math.max(...work.map(b=>b.end)):0;
+  const totalWork=work.reduce((sum,b)=>sum+(b.end-b.start),0);
+
+  $("#statEnd").textContent=work.length?minToTime(lastEnd):"—";
+
+  const summary=$("#autoLoadSummary");
+  if(summary){
+    const firstWeek=work.length?weekNumber(work[0].task):null;
+    const lastWeek=work.length?weekNumber(work[work.length-1].task):null;
+    const weekText=
+      firstWeek!==null
+        ? firstWeek===lastWeek
+          ? `Semana ${firstWeek}`
+          : `Semanas ${firstWeek}–${lastWeek}`
+        : "tareas generales";
+
+    summary.textContent=
+      work.length
+        ? `${work.length} tareas preseleccionadas · ${humanMin(totalWork)} de trabajo · ${weekText} · termina ${minToTime(lastEnd)}`
+        : "No se encontraron tareas disponibles para cargar hoy.";
+  }
 
   renderTasks();
   drawTimeline();
@@ -1812,13 +2321,58 @@ function setSantiagoNow(scroll=true){
   if(scroll){const sc=$("#timelineScroll");sc.scrollTo({left:Math.max(0,x-sc.clientWidth*.55),behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth"})}
 }
 
+$("#applyPreselection").onclick=()=>{
+  readPreselectControls();
+
+  tasks=selectWorkQueue(
+    (dashboard?.workQueue||[]).map(t=>({
+      ...t,
+      duration:+t.duration||30,
+      base:+t.baseTime||+t.duration||30,
+      done:!!t.done
+    }))
+  );
+
+  createPlan();
+  toast("Preselección aplicada ✓");
+};
+
+$("#resetPreselection").onclick=()=>{
+  preselectPrefs={...PRESELECT_DEFAULTS};
+  savePreselectPrefs();
+  syncPreselectControls();
+
+  tasks=selectWorkQueue(
+    (dashboard?.workQueue||[]).map(t=>({
+      ...t,
+      duration:+t.duration||30,
+      base:+t.baseTime||+t.duration||30,
+      done:!!t.done
+    }))
+  );
+
+  createPlan();
+  toast("Preselección recomendada restablecida ✓");
+};
+
 $("#retryConnection").onclick=()=>refreshDashboard();
 $("#heroCatButton").onclick=()=>showCatMessage($("#heroCatBubble"));$("#catCompanion").onclick=()=>showCatMessage($("#catBubble"));$("#returnNow").onclick=()=>showCurrentBlock(true);
 $("#addRoutine").onclick=()=>{routines.push(["Descanso","15:30",15,""]);renderRoutines();queueRoutineSave();createPlan()};
 $("#addMedication").onclick=()=>{routines.push(["Medicamentos","21:30",5,""]);renderRoutines();queueRoutineSave();createPlan()};
 $("#buildDay").onclick=()=>{
+  readPreselectControls();
+
+  tasks=selectWorkQueue(
+    (dashboard?.workQueue||[]).map(t=>({
+      ...t,
+      duration:+t.duration||30,
+      base:+t.baseTime||+t.duration||30,
+      done:!!t.done
+    }))
+  );
+
   createPlan();
-  toast("Carga del día recalculada hasta las 17:00 ✓");
+  toast("Carga automática recalculada hasta las 17:00 ✓");
 };
 $("#resetDay").onclick=async()=>{
   if(!dashboard)return;
