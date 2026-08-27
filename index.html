@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Nico Days · Planificador IACC v16</title>
+<title>Nico Days · Live v2</title>
 <style>
 :root{
   --ink:#26352f;--muted:#6f7c74;--cream:#fffaf0;--green:#6f9276;
@@ -291,6 +291,46 @@ h1{margin:0;font-size:clamp(32px,4.4vw,50px);letter-spacing:-.045em}
   .item-copy{padding-right:20px}
 }
 @media(prefers-reduced-motion:reduce){*{animation:none!important;scroll-behavior:auto!important}}
+
+.nav-count{display:inline-grid;place-items:center;min-width:22px;height:22px;margin-left:5px;padding:0 6px;border-radius:999px;background:rgba(255,255,255,.3);font-size:10px}
+.tab:not(.active) .nav-count{background:var(--green-soft);color:var(--green-dark)}
+.sync-chip.ok{background:#e3eddf;color:#44604d}.sync-chip.busy{background:#f5e9ca;color:#695b37}.sync-chip.error{background:#f1ddd8;color:#8a4e45}
+.empty-state{padding:28px 18px;border:1px dashed var(--line);border-radius:18px;text-align:center;color:var(--muted);background:rgba(255,255,255,.45)}
+.list-actions{display:flex;gap:7px;align-items:center;flex-wrap:wrap}.btn.mini{padding:8px 10px;border-radius:11px;font-size:11px}
+.btn.tomorrow{background:#e6e0ef;color:#574e6e}.btn.ready{background:#dce8d8;color:#3f624b}.btn.link-soft{background:#e7eee3;color:#405f4b;text-decoration:none}
+.backlog-item,.zip-item{align-items:flex-start}.item-badges{display:flex;gap:5px;flex-wrap:wrap;margin-top:5px}
+.small-badge{display:inline-block;padding:3px 7px;border-radius:999px;background:#eef1e8;color:#617068;font-size:10px;font-weight:800}
+.small-badge.warn{background:#f4e6cb;color:#745e35}.small-badge.ready{background:#dfead9;color:#496451}
+.toast{position:fixed;left:50%;bottom:22px;z-index:200;max-width:min(520px,calc(100vw - 28px));transform:translate(-50%,18px);padding:11px 15px;border-radius:15px;background:#26352ff2;color:white;box-shadow:var(--shadow);font-size:12px;font-weight:800;opacity:0;pointer-events:none;transition:.2s ease}
+.toast.show{opacity:1;transform:translate(-50%,0)}.toast.error{background:#7b4942f4}
+.saving-mask{position:fixed;inset:0;z-index:190;background:rgba(247,244,235,.38);backdrop-filter:blur(1px);display:grid;place-items:center;pointer-events:auto}
+.saving-mask span{padding:11px 15px;border-radius:999px;background:#fffaf0;color:var(--green-dark);font-weight:900;box-shadow:var(--shadow)}
+.work-card.is-planned{box-shadow:0 0 0 2px rgba(72,102,84,.16)}.work-card.is-done{opacity:.58}
+
+
+.order-tools{
+  position:absolute;left:12px;top:10px;z-index:5;
+  display:flex;align-items:center;gap:6px
+}
+.order-badge{
+  min-width:30px;height:30px;display:grid;place-items:center;
+  border-radius:999px;background:var(--green-dark);color:#fff;
+  font-size:11px;font-weight:950;box-shadow:0 5px 12px rgba(72,102,84,.16)
+}
+.drag-handle{
+  height:30px;padding:0 9px;border:1px solid rgba(72,102,84,.14);
+  border-radius:10px;background:rgba(255,250,240,.94);color:var(--green-dark);
+  font-size:11px;font-weight:900;cursor:grab;user-select:none
+}
+.drag-handle:active{cursor:grabbing}
+.work-card.dragging{opacity:.45;transform:scale(.985)}
+.work-card.drag-over{box-shadow:0 0 0 3px rgba(111,146,118,.25)}
+.work-card .item-copy{padding-top:28px}
+.routine-actions{display:flex;gap:8px;flex-wrap:wrap}
+.btn.medication{background:#e6e0ef;color:#574e6e}
+.btn.add-day{background:#dfead9;color:#3f624b}
+.btn.add-day:disabled{opacity:.55;cursor:default}
+
 </style>
 </head>
 <body>
@@ -306,15 +346,15 @@ h1{margin:0;font-size:clamp(32px,4.4vw,50px);letter-spacing:-.045em}
       </div>
     </div>
     <div class="hero-tools">
-      <div class="phase-chip"><span class="phase-dot"></span><span id="phaseLabel">—</span></div>
+      <div class="phase-chip"><span class="phase-dot"></span><span id="phaseLabel">—</span></div><div id="syncChip" class="phase-chip sync-chip busy">☁ <span id="syncText">conectando…</span></div>
     </div>
   </div>
 </header>
 
 <nav class="tabs" aria-label="Secciones">
   <button class="tab active" data-page="today">☀ Hoy</button>
-  <button class="tab" data-page="backlog">🧺 Pendientes</button>
-  <button class="tab" data-page="zip">📦 ZIP</button>
+  <button class="tab" data-page="backlog">🧺 Pendientes <span id="tabBacklogCount" class="nav-count">0</span></button>
+  <button class="tab" data-page="zip">📦 ZIP <span id="tabZipCount" class="nav-count">0</span></button>
 </nav>
 
 <main>
@@ -327,15 +367,15 @@ h1{margin:0;font-size:clamp(32px,4.4vw,50px);letter-spacing:-.045em}
 
   <section class="card builder-section">
     <div class="section-head">
-      <div><h3>Rutinas del día</h3><div class="sub">Bloques grandes para que puedas ver la actividad, su hora y su duración de un vistazo.</div></div>
-      <button id="addRoutine" class="btn soft">+ Agregar pausa</button>
+      <div><h3>Rutinas del día</h3><div class="sub">Todos los horarios son editables. Puedes agregar pausas y tantos horarios de medicamentos como necesites.</div></div>
+      <div class="routine-actions"><button id="addRoutine" class="btn soft">+ Agregar pausa</button><button id="addMedication" class="btn medication">+ Agregar medicamento</button></div>
     </div>
     <div id="routineList" class="item-grid"></div>
   </section>
 
   <section class="card builder-section">
     <div class="section-head">
-      <div><h3>Trabajo IACC</h3><div class="sub">Cada tarea usa la ilustración de su producto y mantiene el tiempo editable.</div></div>
+      <div><h3>Trabajo IACC</h3><div class="sub">Tareas planificadas para hoy. Arrástralas para cambiar el orden de trabajo.</div></div>
       <span class="pill">tiempo base + ajuste diario</span>
     </div>
     <div id="taskList" class="item-grid"></div>
@@ -372,7 +412,7 @@ h1{margin:0;font-size:clamp(32px,4.4vw,50px);letter-spacing:-.045em}
     </div>
     <div id="workActions" class="actions hidden">
       <a id="documentLink" class="btn doc-link hidden" href="#" target="_blank" rel="noopener noreferrer">↗ Ir al documento</a>
-      <button id="extend15" class="btn soft">+15 min</button>
+      <button id="reduce15" class="btn soft">−15 min</button><button id="extend15" class="btn soft">+15 min</button>
       <button id="completeTask" class="btn">✓ Terminar tarea</button>
       <div class="status-control">
         <label for="iaccStatus">Estado de la tarea</label>
@@ -388,19 +428,21 @@ h1{margin:0;font-size:clamp(32px,4.4vw,50px);letter-spacing:-.045em}
 
 <section id="backlog" class="page hidden">
   <section class="card">
-    <div class="section-head"><div><h2>🧺 Pendientes acumulados</h2><div class="sub">Lo que quedó vivo después del tiempo planificado vuelve aquí.</div></div><span class="pill"><span id="backlogCount">0</span> pendientes</span></div>
-    <div class="backlog-item"><span class="status-dot"></span><div class="grow"><strong>S6_NOTAS_PROFUNDIZACION_TALRH1103</strong><div class="sub">Nota · 60 min · TALRH1103</div></div><span class="age">6 días</span></div>
-    <div class="backlog-item"><span class="status-dot"></span><div class="grow"><strong>S4_INFOGRAFIA_CIERRE_ADMCB1104</strong><div class="sub">Infografía · 60 min · ADMCB1104</div></div><span class="age">3 días</span></div>
-    <div class="backlog-item"><span class="status-dot"></span><div class="grow"><strong>S2_CONTENIDO_GSTRG1203</strong><div class="sub">Contenido · 30 min · GSTRG1203</div></div><span class="age">1 día</span></div>
+    <div class="section-head">
+      <div><h2>🧺 Pendientes acumulados</h2><div id="backlogSummary" class="sub">Cargando pendientes reales desde la planilla…</div></div>
+      <span class="pill"><span id="backlogCount">0</span> acumulados</span>
+    </div>
+    <div id="backlogList"></div>
   </section>
 </section>
 
 <section id="zip" class="page hidden">
   <section class="card">
-    <div class="section-head"><div><h2>📦 Bosque de ZIP pendientes</h2><div class="sub">Recursos subidos que todavía necesitan el último paso.</div></div><span class="pill"><span id="zipCount">0</span> por cerrar</span></div>
-    <div class="zip-item"><span class="status-dot zip"></span><div class="grow"><strong>ADMCB1104_PRESENTACION_BIENVENIDA</strong><div class="sub">Subido · ZIP pendiente</div></div><button class="btn soft zipDone">Marcar listo</button></div>
-    <div class="zip-item"><span class="status-dot zip"></span><div class="grow"><strong>S1_NOTAS_PROFUNDIZACION_ADMCB1104</strong><div class="sub">Subido · ZIP pendiente</div></div><button class="btn soft zipDone">Marcar listo</button></div>
-    <div class="zip-item"><span class="status-dot zip"></span><div class="grow"><strong>S2_INFOGRAFIA_CIERRE_TALRH1103</strong><div class="sub">Subido · ZIP pendiente</div></div><button class="btn soft zipDone">Marcar listo</button></div>
+    <div class="section-head">
+      <div><h2>📦 ZIP pendientes</h2><div id="zipSummary" class="sub">Cargando ZIP reales desde la planilla…</div></div>
+      <span class="pill"><span id="zipCount">0</span> pendientes</span>
+    </div>
+    <div id="zipList"></div>
   </section>
 </section>
 </main>
@@ -411,374 +453,15 @@ h1{margin:0;font-size:clamp(32px,4.4vw,50px);letter-spacing:-.045em}
   <img id="cornerCat" alt="">
 </button>
 
+<div id="toast" class="toast"></div><div id="savingMask" class="saving-mask hidden"><span>Guardando en IACC Proyecto…</span></div>
 <script>
+
 const $=q=>document.querySelector(q), $$=q=>[...document.querySelectorAll(q)];
 const DAY_START=420, DAY_END=1440, PX_PER_MIN=4;
 
 const ASSETS={"desayuno": "https://drive.google.com/thumbnail?id=1XUaCS6UVdByH8Txg_mnRjMKOvIuN_jWy&sz=w500", "ducha": "https://drive.google.com/thumbnail?id=16ipodCW3TDvJjdqd1ielrAE5kVmYEVJP&sz=w500", "descanso": "https://drive.google.com/thumbnail?id=1DIPE99ZKV5LQLDFGtTEh0ig4dtwPhpRR&sz=w500", "almuerzo": "https://drive.google.com/thumbnail?id=1YrZcyAjfSagzsVVa70Z8W9l9C2SHfgE3&sz=w500", "medicamentos": "https://drive.google.com/thumbnail?id=1X9dn9be6ZBi-lEJ-X3pnZN8XCd6yrKAQ&sz=w500", "cena": "https://drive.google.com/thumbnail?id=1EI3Ey_bE762mpFRBZsWsXSGQpTWOEUaT&sz=w500", "sueno": "https://drive.google.com/thumbnail?id=1Lm_nKiFhY_l1x8XOP3GwuSvXMqkQ8QDR&sz=w500", "contenido": "https://drive.google.com/thumbnail?id=1V9Pr_BtEyU8jaJvKg7scGvu3GGU29D3G&sz=w500", "imagen": "https://drive.google.com/thumbnail?id=1KXrQfZWTz-AHHf51pt43JTJKMb6ttLKs&sz=w500", "infografia": "https://drive.google.com/thumbnail?id=1GqP99lqiU42yaWJw-CfHRQipOs0S-kFJ&sz=w500", "interactivo": "https://drive.google.com/thumbnail?id=1_HelzYzFvGPSkx_1Bn0AUjp0Fq8idco4&sz=w500", "nota": "https://drive.google.com/thumbnail?id=185jjC4SBT9B97VULZ_btsnMf6H75SFEs&sz=w500", "organizador": "https://drive.google.com/thumbnail?id=1AWOFqfotFbN9LsueNiEFz9Sa-5wpwHz7&sz=w500", "podcast": "https://drive.google.com/thumbnail?id=1rwCZ8r6dkHVxNM0HRvyuFD3W1uPQatmh&sz=w500", "presentacion": "https://drive.google.com/thumbnail?id=1Y6S5z_gN8qBAQISblmjnsSwVELHGcL5a&sz=w500", "resumen": "https://drive.google.com/thumbnail?id=1srZFNXd5mtjsPTqt1oiMqueGmIdWaDUL&sz=w500", "ruta": "https://drive.google.com/thumbnail?id=1FmCj8h5iAsjjAZPNdtUyvQRyRYn4u0Eu&sz=w500", "video": "https://drive.google.com/thumbnail?id=1tllGSLaYKpH6mY2F5-6El8EKj-Q2grO8&sz=w500", "gato1": "https://drive.google.com/thumbnail?id=1xQDpXowcFBaGO4FCBbDXwB0fOLaMuupD&sz=w500", "gato2": "https://drive.google.com/thumbnail?id=1mvAhieyHy2oNIr8z7y-CIrWr-OzwsJ2w&sz=w500", "gato3": "https://drive.google.com/thumbnail?id=1YvQoM1LqKmnT7JpNQgkGOq1IJAhsKM2d&sz=w500", "gato4": "https://drive.google.com/thumbnail?id=1gudiG0v_2GoZZKCOlb_f2u1Wylx4PJic&sz=w500"};
 const PATTERNS={"amanecer": "https://drive.google.com/thumbnail?id=1mx71VfAQK1qeFbtuPevjEYahqAHInbWa&sz=w1200", "manana": "https://drive.google.com/thumbnail?id=1ueAYTJ663-AJNpU1myovylczqlCq-D_j&sz=w1200", "tarde": "https://drive.google.com/thumbnail?id=1z_9pYiD4ox1zOGfc4ZYhOGQvf6PcGfBg&sz=w1200", "crepusculo": "https://drive.google.com/thumbnail?id=11OMQXgfyHQhYxq63zcsAhTbTaGSAMmbN&sz=w1200", "noche": "https://drive.google.com/thumbnail?id=1RwO5Oj6dcPScj1gRCNdTeOI--lPN1ApB&sz=w1200"};
-
 const catAssets=[ASSETS.gato1,ASSETS.gato2,ASSETS.gato3,ASSETS.gato4];
-const norm=s=>String(s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().trim();
-
-function routineAsset(name){
-  const n=norm(name);
-  if(n.includes("desayuno"))return ASSETS.desayuno;
-  if(n.includes("ducha"))return ASSETS.ducha;
-  if(n.includes("almuerzo"))return ASSETS.almuerzo;
-  if(n.includes("descanso")||n.includes("pausa"))return ASSETS.descanso;
-  if(n.includes("medic"))return ASSETS.medicamentos;
-  if(n.includes("cena"))return ASSETS.cena;
-  if(n.includes("sueno")||n.includes("dormir"))return ASSETS.sueno;
-  return ASSETS.descanso;
-}
-function productAsset(product){
-  const p=norm(product);
-  if(p==="contenido")return ASSETS.contenido;if(p==="imagen")return ASSETS.imagen;
-  if(p==="infografia")return ASSETS.infografia;if(p==="interactivo")return ASSETS.interactivo;
-  if(p==="nota")return ASSETS.nota;if(p.includes("organizador"))return ASSETS.organizador;
-  if(p==="podcast")return ASSETS.podcast;if(p.includes("presentacion"))return ASSETS.presentacion;
-  if(p==="resumen")return ASSETS.resumen;if(p.includes("ruta"))return ASSETS.ruta;
-  if(p==="video")return ASSETS.video;return ASSETS.contenido;
-}
-
-/* Fondo real por hora:
-   05:00–06:59 amanecer
-   07:00–11:59 mañana
-   12:00–17:29 almuerzo/tarde
-   17:30–20:29 crepúsculo
-   20:30–04:59 noche
-*/
-function getSantiagoParts(date=new Date()){
-  const parts=new Intl.DateTimeFormat("es-CL",{
-    timeZone:"America/Santiago",
-    hour:"2-digit",
-    minute:"2-digit",
-    second:"2-digit",
-    hourCycle:"h23",
-    year:"numeric",
-    month:"2-digit",
-    day:"2-digit"
-  }).formatToParts(date);
-
-  const values={};
-  parts.forEach(part=>{
-    if(part.type!=="literal") values[part.type]=part.value;
-  });
-
-  return{
-    year:+values.year,
-    month:+values.month,
-    day:+values.day,
-    hour:+values.hour,
-    minute:+values.minute,
-    second:+values.second
-  };
-}
-
-function santiagoMinutes(date=new Date()){
-  const now=getSantiagoParts(date);
-  return now.hour*60+now.minute;
-}
-
-function phaseForDate(date=new Date()){
-  const m=santiagoMinutes(date);
-
-  if(m>=300&&m<420)
-    return{key:"amanecer",label:"Amanecer · 05:00–06:59",wash:"rgba(255,249,232,.86)"};
-
-  if(m>=420&&m<720)
-    return{key:"manana",label:"Mañana · 07:00–11:59",wash:"rgba(255,250,238,.86)"};
-
-  if(m>=720&&m<1050)
-    return{key:"tarde",label:"Almuerzo / tarde · 12:00–17:29",wash:"rgba(250,248,229,.84)"};
-
-  if(m>=1050&&m<1230)
-    return{key:"crepusculo",label:"Crepúsculo · 17:30–20:29",wash:"rgba(255,238,225,.78)"};
-
-  return{key:"noche",label:"Noche · 20:30–04:59",wash:"rgba(27,36,59,.72)"};
-}
-
-function updateTimeBackground(){
-  const phase=phaseForDate();
-  document.documentElement.style.setProperty("--time-pattern",`url("${PATTERNS[phase.key]}")`);
-  document.documentElement.style.setProperty("--time-wash",phase.wash);
-  $("#phaseLabel").textContent=phase.label;
-}
-
-$("#heroCat").src=ASSETS.gato4;
-$("#cornerCat").src=ASSETS.gato2;
-
-const baseRoutines=[
-  ["Desayuno","08:00",30,""],
-  ["Ducha","08:30",20,""],
-  ["Almuerzo","13:30",45,""],
-  ["Cena","20:30",45,""],
-  ["Medicamentos","21:20",5,""]
-];
-const baseTasks=[
-  ["S1_CONTENIDO_ADMCB1104","Contenido","ADMCB1104",30,"https://iaccsa.sharepoint.com/:w:/r/sites/PROYECTOOCTUBRE2026-3.Diseo/_layouts/15/Doc.aspx?sourcedoc=%7B253D1CB9-599D-44E1-A47D-8C371D7A87AC%7D&file=S1_CONTENIDO_ADMCB1104.docx&action=default&mobileredirect=true"],
-  ["S1_INFOGRAFIA_CIERRE_ADMCB1104","Infografía","ADMCB1104",60,"https://iaccsa.sharepoint.com/:w:/r/sites/PROYECTOOCTUBRE2026-3.Diseo/_layouts/15/Doc.aspx?sourcedoc=%7BADF57101-2D67-47E2-B4A0-EFF1765C8EB0%7D&file=S1_INFOGRAFIA_CIERRE_ADMCB1104.docx&action=default&mobileredirect=true"],
-  ["S2_NOTA_INICIO_TALRH1103","Nota","TALRH1103",60,"https://iaccsa.sharepoint.com/:w:/r/sites/PROYECTOOCTUBRE2026-3.Diseo/_layouts/15/Doc.aspx?sourcedoc=%7B870A565D-C8C0-4E06-85C6-81C0559D4B96%7D&file=S2_NOTA_INICIO_TALRH1103.docx&action=default&mobileredirect=true"],
-  ["S2_INTERACTIVO_PROFUNDIZACION_GSTRG1203","Interactivo","GSTRG1203",60,"https://iaccsa.sharepoint.com/:w:/r/sites/PROYECTOOCTUBRE2026-3.Diseo/_layouts/15/Doc.aspx?sourcedoc=%7BB8A9C7EF-4B1C-494D-B7A3-6356A72C8FFF%7D&file=S2_INTERACTIVO_PROFUNDIZACION_GSTRG1203.docx&action=default&mobileredirect=true"],
-  ["S3_VIDEO_PROFUNDIZACION_SOCMM1101","Video","SOCMM1101",120,"https://iaccsa.sharepoint.com/:w:/r/sites/PROYECTOOCTUBRE2026-3.Diseo/_layouts/15/Doc.aspx?sourcedoc=%7B682ED4AD-E477-4BBB-8C59-05EF56862FFE%7D&file=S3_VIDEO_PROFUNDIZACION_SOCMM1101.docx&action=default&mobileredirect=true"],
-  ["S2_PODCAST_INICIO_SALMD1401","Podcast","SALMD1401",30,"https://iaccsa.sharepoint.com/:w:/r/sites/PROYECTOOCTUBRE2026-3.Diseo/_layouts/15/Doc.aspx?sourcedoc=%7BDB14D68E-D90B-4924-BD46-5F20E693D9A1%7D&file=S2_PODCAST_INICIO_SALMD1401.docx&action=default&mobileredirect=true"],
-  ["S4_ORGANIZADOR_GRAFICO_CIERRE_GSTRG1203","Organizador gráfico","GSTRG1203",30,"https://iaccsa.sharepoint.com/:w:/r/sites/PROYECTOOCTUBRE2026-3.Diseo/_layouts/15/Doc.aspx?sourcedoc=%7B3BEA6C5D-62FD-4979-8E65-63CA247F25AC%7D&file=S4_ORGANIZADOR_GRAFICO_CIERRE_GSTRG1203.docx&action=default&mobileredirect=true"]
-];
-let routines=structuredClone(baseRoutines);
-let tasks=baseTasks.map((x,id)=>({id,name:x[0],product:x[1],course:x[2],base:x[3],
-      duration:x[3],
-      url:x[4] || "",enabled:true,done:false,iacc:"Pendiente",zip:"No aplica"}));
-let plan=[], selected=null;
-
-function timeToMin(t){const [h,m]=t.split(":").map(Number);return h*60+m}
-function minToTime(m){m=Math.max(0,Math.round(m));return String(Math.floor(m/60)).padStart(2,"0")+":"+String(m%60).padStart(2,"0")}
-function humanMin(m){m=Math.round(m);return m<60?m+" min":Math.floor(m/60)+" h"+(m%60?" "+m%60+" min":"")}
-function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
-
-function renderRoutines(){
-  const root=$("#routineList");root.innerHTML="";
-  routines.forEach((r,i)=>{
-    if(r.length<4)r[3]="";
-    const card=document.createElement("article");card.className="routine-card";
-    const medication=norm(r[0]).includes("medic");
-    card.innerHTML=`
-      <button class="remove" type="button" aria-label="Quitar actividad">×</button>
-      <div class="routine-visual"><img alt="" src="${routineAsset(r[0])}"></div>
-      <div class="item-copy">
-        <label>Actividad</label>
-        <input class="item-name" aria-label="Actividad" value="${escapeHtml(r[0])}">
-        <div class="item-time-row">
-          <div><label>Hora</label><input aria-label="Hora" type="time" value="${r[1]}"></div>
-          <div><label>Duración</label><input aria-label="Duración" type="number" min="5" step="5" value="${r[2]}"></div>
-          ${medication?`
-          <div class="medication-field">
-            <label>Medicamentos a tomar</label>
-            <input aria-label="Medicamentos a tomar" type="text" value="${escapeHtml(r[3]||"")}" placeholder="Ej: vitamina D, medicamento 1…">
-          </div>`:""}
-        </div>
-      </div>`;
-    const nameInput=card.querySelector('[aria-label="Actividad"]');
-    const timeInput=card.querySelector('[aria-label="Hora"]');
-    const durationInput=card.querySelector('[aria-label="Duración"]');
-    const medsInput=card.querySelector('[aria-label="Medicamentos a tomar"]');
-    nameInput.addEventListener("input",e=>{routines[i][0]=e.target.value;card.querySelector("img").src=routineAsset(e.target.value)});
-    timeInput.addEventListener("input",e=>routines[i][1]=e.target.value);
-    durationInput.addEventListener("input",e=>routines[i][2]=Math.max(5,+e.target.value||5));
-    if(medsInput)medsInput.addEventListener("input",e=>routines[i][3]=e.target.value);
-    card.querySelector(".remove").addEventListener("click",()=>{routines.splice(i,1);renderRoutines()});
-    root.append(card);
-  });
-}
-function renderTasks(){
-  const root=$("#taskList");root.innerHTML="";
-  tasks.forEach((t,i)=>{
-    const card=document.createElement("article");card.className="work-card";
-    card.innerHTML=`
-      <label class="include"><input type="checkbox" ${t.enabled?"checked":""}> incluir</label>
-      <div class="work-visual"><img alt="" src="${productAsset(t.product)}"></div>
-      <div class="item-copy">
-        <div class="work-title">${escapeHtml(t.name)}</div>
-        <div class="work-meta">${t.product} · ${t.course}${t.done?" · ✓ terminada":""}</div>
-        <div class="work-controls">
-          <div class="duration-wrap"><label>Duración de hoy</label><input aria-label="Duración de tarea" type="number" min="5" step="5" value="${t.duration}"></div>
-          <div><label>Tiempo base</label><div class="base-time">${humanMin(t.base)}</div></div>
-        </div>
-      </div>`;
-    const check=card.querySelector('[type="checkbox"]'), duration=card.querySelector('[type="number"]');
-    check.addEventListener("change",e=>{tasks[i].enabled=e.target.checked;updateStats()});
-    duration.addEventListener("input",e=>{tasks[i].duration=Math.max(5,+e.target.value||5);updateStats()});
-    root.append(card);
-  });
-  updateStats();
-}
-function updateStats(){
-  $("#statDone").textContent=tasks.filter(t=>t.done).length+" / "+tasks.length;
-}
-function updateCounters(){
-  const backlog=$$(".backlog-item").filter(x=>!x.classList.contains("resolved")).length;
-  const zip=$$(".zip-item").filter(x=>!x.classList.contains("resolved")).length;
-  $("#backlogCount").textContent=backlog;$("#zipCount").textContent=zip;
-}
-
-function createPlan(){
-  const fixed=routines.map(r=>({type:"routine",name:r[0]||"Rutina",start:timeToMin(r[1]),end:timeToMin(r[1])+Math.max(5,+r[2]||5),note:r[3]||""})).sort((a,b)=>a.start-b.start);
-  let blocks=[...fixed], cursor=540;
-  tasks.filter(t=>t.enabled&&!t.done).forEach(t=>{
-    let placed=false,guard=0;
-    while(!placed&&guard++<60){
-      const inside=fixed.find(r=>cursor>=r.start&&cursor<r.end);
-      if(inside){cursor=inside.end;continue}
-      const next=fixed.find(r=>r.start>=cursor);
-      const available=next?next.start:DAY_END+300;
-      if(cursor+t.duration<=available){
-        blocks.push({type:"work",name:t.name,start:cursor,end:cursor+t.duration,task:t});
-        cursor+=t.duration;placed=true;
-      }else if(next){cursor=next.end}else{placed=true}
-    }
-  });
-  blocks.sort((a,b)=>a.start-b.start);
-  const out=[];let p=DAY_START;
-  blocks.forEach(b=>{if(b.start>p)out.push({type:"free",name:"Espacio libre",start:p,end:b.start});out.push(b);p=Math.max(p,b.end)});
-  if(p<DAY_END)out.push({type:"free",name:"Espacio libre",start:p,end:DAY_END});
-  plan=out;
-  const work=blocks.filter(b=>b.type==="work");
-  $("#statEnd").textContent=work.length?minToTime(Math.max(...work.map(b=>b.end))):"—";
-  $("#planMessage").textContent="Día recalculado respetando tus horarios personales.";
-  drawTimeline();
-}
-function drawTimeline(){
-  const max=Math.max(DAY_END,...plan.map(b=>b.end)), width=(max-DAY_START)*PX_PER_MIN;
-  const timeline=$("#timeline");timeline.style.width=width+"px";timeline.style.minWidth=width+"px";
-  const hours=$("#hours");hours.innerHTML="";
-  for(let m=DAY_START;m<=max;m+=30){
-    const x=(m-DAY_START)*PX_PER_MIN, line=document.createElement("span");
-    line.className=m%60===0?"hour-line":"half-line";line.style.left=x+"px";hours.append(line);
-    if(m%60===0){const label=document.createElement("span");label.className="hour-label";label.style.left=x+"px";label.textContent=minToTime(m);hours.append(label)}
-  }
-  const track=$("#track");track.innerHTML="";
-  plan.forEach(b=>{
-    const el=document.createElement("button");el.type="button";
-    const raw=(b.end-b.start)*PX_PER_MIN-5;
-    const visualWidth=Math.max(raw,b.type==="free"?96:b.type==="routine"?88:112);
-    el.className="block "+b.type+(visualWidth<150?" short":"")+(raw<86?" micro":"");
-    el.style.left=((b.start-DAY_START)*PX_PER_MIN)+"px";el.style.width=visualWidth+"px";
-    const meta=b.type==="work"?`${b.task.product} · ${b.task.course}`:b.type==="routine"?(b.note?`rutina · ${b.note}`:"rutina personal"):"disponible";
-    el.innerHTML=`<span class="name"></span><span class="meta"></span><span class="time"></span>`;
-    el.querySelector(".name").textContent=b.name;el.querySelector(".meta").textContent=meta;el.querySelector(".time").textContent=minToTime(b.start)+"–"+minToTime(b.end);
-    if(b.type==="routine"||b.type==="work"){
-      const art=document.createElement("img");art.className="timeline-art";art.alt="";
-      art.src=b.type==="routine"?routineAsset(b.name):productAsset(b.task.product);el.append(art);
-    }
-    el.addEventListener("click",()=>selectBlock(b));track.append(el);
-  });
-
-  $$(".floating-cat").forEach(x=>x.remove());
-  plan.filter(b=>(b.type==="routine"&&/descanso|pausa/i.test(norm(b.name)))||(b.type==="free"&&(b.end-b.start)>=25)).slice(0,8).forEach((b,i)=>{
-    const cat=document.createElement("button");cat.type="button";cat.className="floating-cat"+(i%2?" alt":"");cat.setAttribute("aria-label","Hablar con el gatito");
-    cat.innerHTML=`<span class="cat-mini-bubble"></span><img alt="" src="${catAssets[i%catAssets.length]}">`;
-    const center=((b.start+b.end)/2-DAY_START)*PX_PER_MIN;cat.style.left=Math.max(10,center-38)+"px";cat.style.top=(i%2?40:31)+"px";
-    cat.addEventListener("click",e=>{e.stopPropagation();showCatMessage(cat.querySelector(".cat-mini-bubble"))});
-    timeline.append(cat);
-  });
-
-  setSantiagoNow(false);
-}
-
-function getCurrentTimelineBlock(){
-  const minute=santiagoMinutes();
-  return plan.find(block=>minute>=block.start&&minute<block.end) || null;
-}
-
-function renderDetailBlock(block,mode="current"){
-  if(!block){
-    $("#detailLabel").textContent=mode==="selected"?"BLOQUE SELECCIONADO":"BLOQUE ACTUAL";
-    $("#detailName").textContent="Sin bloque";
-    $("#detailMeta").textContent="No hay un bloque asociado a esta hora.";
-    $("#detailDuration").textContent="—";
-    $("#workActions").classList.add("hidden");
-    $("#documentLink").classList.add("hidden");
-    return;
-  }
-
-  $("#detailLabel").textContent=mode==="selected"?"BLOQUE SELECCIONADO":"BLOQUE ACTUAL";
-  $("#detailName").textContent=block.name;
-  $("#detailDuration").textContent=humanMin(block.end-block.start);
-
-  if(block.type==="work"){
-    $("#detailMeta").textContent=`${block.task.product} · ${block.task.course} · ${minToTime(block.start)}–${minToTime(block.end)}`;
-    $("#workActions").classList.remove("hidden");
-
-    const documentLink=$("#documentLink");
-    if(block.task.url){
-      documentLink.href=block.task.url;
-      documentLink.classList.remove("hidden");
-    }else{
-      documentLink.removeAttribute("href");
-      documentLink.classList.add("hidden");
-    }
-
-    $("#iaccStatus").value=block.task.iacc;
-    $("#zipStatus").value=block.task.zip;
-  }else{
-    $("#detailMeta").textContent=
-      block.type==="routine"
-      ? `Rutina personal · ${minToTime(block.start)}–${minToTime(block.end)}${block.note?" · "+block.note:""}`
-      : `Espacio disponible · ${minToTime(block.start)}–${minToTime(block.end)}`;
-
-    $("#workActions").classList.add("hidden");
-    $("#documentLink").classList.add("hidden");
-  }
-}
-
-function showCurrentBlock(scroll=false){
-  selected=null;
-  $("#returnNow").classList.add("hidden");
-
-  const current=getCurrentTimelineBlock();
-
-  $$(".block").forEach(el=>el.classList.remove("current-block"));
-
-  if(current){
-    const index=plan.indexOf(current);
-    const element=$("#track").children[index];
-    if(element)element.classList.add("current-block");
-  }
-
-  renderDetailBlock(current,"current");
-
-  if(scroll)setSantiagoNow(true);
-}
-
-function selectBlock(b){
-  selected=b;
-  $("#returnNow").classList.remove("hidden");
-  $$(".block").forEach(el=>el.classList.remove("current-block"));
-  renderDetailBlock(b,"selected");
-}
-function isBreakRoutine(name){
-  const n=norm(name);
-  return /descanso|pausa|desayuno|almuerzo|cena/.test(n);
-}
-function updateNextBreak(currentMinute){
-  const routinesInPlan=plan.filter(b=>b.type==="routine"&&isBreakRoutine(b.name)).sort((a,b)=>a.start-b.start);
-  const active=routinesInPlan.find(b=>currentMinute>=b.start&&currentMinute<b.end);
-  if(active){
-    $("#statBreak").textContent="Ahora";
-    $("#statBreakLabel").textContent=`${active.name} · hasta ${minToTime(active.end)}`;
-    return;
-  }
-  const next=routinesInPlan.find(b=>b.start>currentMinute);
-  if(!next){
-    $("#statBreak").textContent="—";
-    $("#statBreakLabel").textContent="No hay otro descanso programado";
-    return;
-  }
-  $("#statBreak").textContent=humanMin(next.start-currentMinute);
-  $("#statBreakLabel").textContent=`${next.name} · ${minToTime(next.start)}`;
-}
-function setSantiagoNow(scroll=true){
-  const currentMinute=santiagoMinutes();
-  const visibleMinute=Math.max(DAY_START,Math.min(DAY_END,currentMinute));
-  const x=(visibleMinute-DAY_START)*PX_PER_MIN;
-
-  $("#nowLine").style.left=x+"px";
-  $("#nowTag").textContent=minToTime(currentMinute);
-  $("#clock").textContent=minToTime(currentMinute);
-
-  updateNextBreak(currentMinute);
-
-  if(!selected)showCurrentBlock(false);
-
-  if(scroll){
-    const sc=$("#timelineScroll");
-    sc.scrollTo({
-      left:Math.max(0,x-sc.clientWidth*.55),
-      behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth"
-    });
-  }
-}
-
 
 /* SONIDOS DE GATO — Web Audio, sin archivos externos */
 let catAudioContext=null;
@@ -893,62 +576,397 @@ function pulseCatVisual(bubble){
 }
 
 
+
+
 const CAT_MESSAGES=["Humano, ya hiciste suficiente por hoy. Ven a no hacer nada conmigo. 🐈🛋️", "Las cosas importantes también pueden esperar una siesta. 😴✨", "Tu única tarea ahora es encontrar un lugar cómodo. 🛏️🐾", "Yo ya revisé tu agenda. Dice: dormir. 📋🌙", "Cerrar los ojos también cuenta como avanzar. 😌🌿", "No todo momento tiene que ser productivo. Mira qué bien me va a mí. 🐈💤", "Guarda las garras, humano. Hoy ya peleaste suficiente. 🐾🧘", "El mundo seguirá ahí después de una siesta. 🌎😴", "Ven. Encontré el lugar perfecto para no hacer absolutamente nada. 🛋️✨", "A veces la mejor decisión es hacerse bolita. 🐈🌀", "Descansa. Yo vigilo la casa... más o menos. 👀🐾", "Tu batería está baja. Activa el modo gato. 🔋🐈", "No necesitas ganarte el descanso. 🌿♥", "Hoy puedes ser una criatura pequeña y cómoda. 🐾🧸", "Las preocupaciones no pueden entrar debajo de esta manta. 🛏️✨", "Humano, terminaste. Ahora ve a hacer lo que te dé la gana. 🎉🐈", "La puerta de tu jaula imaginaria está abierta. 🚪✨", "No quedan tareas. Eres oficialmente un gato libre. 🐈🕊️", "Has cumplido con tus obligaciones humanas. Puedes volver a ser una criatura del bosque. 🌲🐾", "Ya nadie puede decirte qué hacer. Excepto yo. 😼👑", "Tu tiempo vuelve a pertenecerte. ⏳♥", "Se acabaron los deberes. Empieza la parte buena del día. 🌤️🎉", "Corre libre, humano. Yo ocuparé tu silla. 🏃🐈", "Has desbloqueado: tiempo para existir. 🔓✨", "Puedes irte. El reino sobrevivirá sin ti. 🏰🌿", "Misión cumplida. Ahora desaparece misteriosamente durante unas horas. ✅🌙", "Ya eres libre. Ve a perseguir tu equivalente humano de una polilla. 🦋🐾", "Terminaste. Desde ahora, todo es tiempo robado al universo. 🌌⏳", "La agenda te ha soltado. No mires atrás. 📖🕊️", "Eres libre. Haz algo inútil y maravilloso. ✨🎈", "El hechizo del deber se ha roto. ✨🔮", "Las estrellas decretan que debes descansar. ⭐😴", "Tu misión terminó. El resto de la noche te pertenece. 🌙♥", "El bosque no tiene lista de pendientes. 🌲🍃", "La luna dice que ya es suficiente. 🌙🐾", "Has recuperado tus horas. Úsalas sabiamente... o duerme. ⏳😴", "El portal está abierto, humano. Al otro lado no hay obligaciones. 🌀✨", "La magia vuelve cuando dejas de correr. ✨🌿", "Por decreto del Consejo de los Gatos: quedas liberado de tus tareas. 🐈📜", "Tu aventura de hoy terminó. Guarda la espada y busca una almohada. ⚔️🛏️", "Modo gato activado. 🐈✨", "Hora de hacerse bolita. 🌀🐾", "Ya puedes descansar. 😴🌿", "Eres libre, humano. 🕊️🐈", "Misión cumplida. ✅✨", "La agenda te liberó. 📖🕊️", "Ahora: nada. 🌿☁️", "Ve a existir un rato. 🍃✨", "Hoy fue suficiente. 🌙♥", "El resto es tuyo. ⏳✨", "A dormir, criatura. 🌙😴", "Sin pendientes. Sin culpa. ✅🌿", "Descansa esas patitas. 🐾🛏️", "Tu tiempo es tuyo. ⏳♥", "Fin de la misión. 🏁✨", "La luna te da permiso. 🌙✨", "Libertad desbloqueada. 🔓🕊️", "Cierra todo. Abre una siesta. 💻➡️😴"];
 const catBubbleTimers=new WeakMap();
-let lastCatMessage="";
-function randomCatMessage(){
-  if(CAT_MESSAGES.length<2)return CAT_MESSAGES[0]||"Miau 🐈";
-  let message=lastCatMessage;
-  while(message===lastCatMessage){
-    message=CAT_MESSAGES[Math.floor(Math.random()*CAT_MESSAGES.length)];
+let lastCatMessage="",toastTimer=null,dashboard=null,routines=[],tasks=[],plan=[],selected=null,routineSaveTimer=null;
+
+const norm=s=>String(s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().trim();
+const escapeHtml=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+function routineAsset(name){
+  const n=norm(name);
+  if(n.includes("desayuno"))return ASSETS.desayuno;
+  if(n.includes("ducha"))return ASSETS.ducha;
+  if(n.includes("almuerzo"))return ASSETS.almuerzo;
+  if(n.includes("descanso")||n.includes("pausa"))return ASSETS.descanso;
+  if(n.includes("medic"))return ASSETS.medicamentos;
+  if(n.includes("cena"))return ASSETS.cena;
+  if(n.includes("sueno")||n.includes("dormir"))return ASSETS.sueno;
+  return ASSETS.descanso;
+}
+function productAsset(product){
+  const p=norm(product);
+  if(p==="contenido")return ASSETS.contenido;if(p==="imagen")return ASSETS.imagen;
+  if(p==="infografia")return ASSETS.infografia;if(p==="interactivo")return ASSETS.interactivo;
+  if(p==="nota")return ASSETS.nota;if(p.includes("organizador"))return ASSETS.organizador;
+  if(p==="podcast")return ASSETS.podcast;if(p.includes("presentacion"))return ASSETS.presentacion;
+  if(p==="resumen")return ASSETS.resumen;if(p.includes("ruta"))return ASSETS.ruta;
+  if(p==="video")return ASSETS.video;return ASSETS.contenido;
+}
+function getSantiagoParts(date=new Date()){
+  const parts=new Intl.DateTimeFormat("es-CL",{timeZone:"America/Santiago",hour:"2-digit",minute:"2-digit",second:"2-digit",hourCycle:"h23",year:"numeric",month:"2-digit",day:"2-digit"}).formatToParts(date);
+  const values={};parts.forEach(part=>{if(part.type!=="literal")values[part.type]=part.value});
+  return{year:+values.year,month:+values.month,day:+values.day,hour:+values.hour,minute:+values.minute,second:+values.second};
+}
+function santiagoMinutes(date=new Date()){const n=getSantiagoParts(date);return n.hour*60+n.minute}
+function phaseForDate(date=new Date()){
+  const m=santiagoMinutes(date);
+  if(m>=300&&m<420)return{key:"amanecer",label:"Amanecer · 05:00–06:59",wash:"rgba(255,249,232,.86)"};
+  if(m>=420&&m<720)return{key:"manana",label:"Mañana · 07:00–11:59",wash:"rgba(255,250,238,.86)"};
+  if(m>=720&&m<1050)return{key:"tarde",label:"Almuerzo / tarde · 12:00–17:29",wash:"rgba(250,248,229,.84)"};
+  if(m>=1050&&m<1230)return{key:"crepusculo",label:"Crepúsculo · 17:30–20:29",wash:"rgba(255,238,225,.78)"};
+  return{key:"noche",label:"Noche · 20:30–04:59",wash:"rgba(27,36,59,.72)"};
+}
+function updateTimeBackground(){
+  const phase=phaseForDate();
+  document.documentElement.style.setProperty("--time-pattern",`url("${PATTERNS[phase.key]}")`);
+  document.documentElement.style.setProperty("--time-wash",phase.wash);
+  $("#phaseLabel").textContent=phase.label;
+}
+
+function gas(fn,...args){
+  return new Promise((resolve,reject)=>{
+    if(!(window.google&&google.script&&google.script.run)){reject(new Error("Nico Days Live debe abrirse desde Google Apps Script."));return}
+    const runner=google.script.run.withSuccessHandler(resolve).withFailureHandler(err=>reject(new Error(err?.message||String(err))));
+    runner[fn](...args);
+  });
+}
+function setSync(mode,text){const chip=$("#syncChip");chip.classList.remove("ok","busy","error");chip.classList.add(mode);$("#syncText").textContent=text}
+function setSaving(value){$("#savingMask").classList.toggle("hidden",!value)}
+function toast(message,error=false){const el=$("#toast");el.textContent=message;el.classList.toggle("error",error);el.classList.add("show");clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove("show"),2600)}
+function timeToMin(t){const [h,m]=String(t||"00:00").split(":").map(Number);return h*60+m}
+function minToTime(m){m=Math.max(0,Math.round(m));if(m>=1440)return"24:00";return String(Math.floor(m/60)).padStart(2,"0")+":"+String(m%60).padStart(2,"0")}
+function humanMin(m){m=Math.max(0,Math.round(+m||0));return m<60?m+" min":Math.floor(m/60)+" h"+(m%60?" "+m%60+" min":"")}
+function randomCatMessage(){if(CAT_MESSAGES.length<2)return CAT_MESSAGES[0]||"Miau 🐈";let message=lastCatMessage;while(message===lastCatMessage)message=CAT_MESSAGES[Math.floor(Math.random()*CAT_MESSAGES.length)];lastCatMessage=message;return message}
+function showCatMessage(bubble){if(!bubble)return;playRandomCatSound();pulseCatVisual(bubble);bubble.textContent=randomCatMessage();bubble.classList.add("show");const old=catBubbleTimers.get(bubble);if(old)clearTimeout(old);const timer=setTimeout(()=>bubble.classList.remove("show"),3500);catBubbleTimers.set(bubble,timer)}
+
+$("#heroCat").src=ASSETS.gato4;$("#cornerCat").src=ASSETS.gato2;
+
+function hydrateDashboard(data){
+  dashboard=data;
+  routines=(data.routines||[]).map(r=>[r.activity,r.time,+r.duration||5,r.detail||""]);
+  tasks=(data.todayCandidates||[]).map(t=>({...t,duration:+t.duration||30,base:+t.baseTime||+t.duration||30,enabled:true,done:!!t.done}));
+  renderRoutines();renderTasks();renderBacklog();renderZip();updateCounters();createPlan();
+}
+async function refreshDashboard(message=""){
+  setSync("busy","sincronizando…");
+  try{const data=await gas("apiLoadDashboard");hydrateDashboard(data);setSync("ok","sincronizado");if(message)toast(message)}
+  catch(err){setSync("error","error de conexión");toast(err.message,true)}
+}
+function queueRoutineSave(){
+  clearTimeout(routineSaveTimer);
+  routineSaveTimer=setTimeout(async()=>{
+    try{
+      await gas("apiSaveRoutines",routines.map((r,i)=>({activity:r[0],time:r[1],duration:+r[2]||5,detail:r[3]||"",order:i+1})));
+      setSync("ok","rutinas guardadas");
+    }catch(err){toast(err.message,true)}
+  },850);
+}
+function renderRoutines(){
+  const root=$("#routineList");root.innerHTML="";
+  routines.forEach((r,i)=>{
+    const medication=norm(r[0]).includes("medic"),card=document.createElement("article");card.className="routine-card";
+    card.innerHTML=`<button class="remove" type="button" aria-label="Quitar actividad">×</button>
+      <div class="routine-visual"><img alt="" src="${routineAsset(r[0])}"></div>
+      <div class="item-copy"><label>Actividad</label><input class="item-name" aria-label="Actividad" value="${escapeHtml(r[0])}">
+      <div class="item-time-row"><div><label>Hora</label><input aria-label="Hora" type="time" value="${r[1]}"></div>
+      <div><label>Duración</label><input aria-label="Duración" type="number" min="5" step="5" value="${r[2]}"></div>
+      ${medication?`<div class="medication-field"><label>Medicamentos a tomar</label><input aria-label="Medicamentos a tomar" type="text" value="${escapeHtml(r[3]||"")}" placeholder="Ej: vitamina D, medicamento 1…"></div>`:""}</div></div>`;
+    const name=card.querySelector('[aria-label="Actividad"]'),time=card.querySelector('[aria-label="Hora"]'),duration=card.querySelector('[aria-label="Duración"]'),detail=card.querySelector('[aria-label="Medicamentos a tomar"]');
+    name.oninput=e=>{r[0]=e.target.value;card.querySelector("img").src=routineAsset(r[0]);queueRoutineSave()};
+    time.onchange=e=>{r[1]=e.target.value;queueRoutineSave();createPlan()};
+    duration.onchange=e=>{r[2]=Math.max(5,+e.target.value||5);queueRoutineSave();createPlan()};
+    if(detail)detail.oninput=e=>{r[3]=e.target.value;queueRoutineSave()};
+    card.querySelector(".remove").onclick=()=>{routines.splice(i,1);renderRoutines();queueRoutineSave();createPlan()};
+    root.append(card);
+  });
+}
+function renderTasks(){
+  const root=$("#taskList");
+  root.innerHTML="";
+
+  if(!tasks.length){
+    root.innerHTML='<div class="empty-state">No hay tareas planificadas para hoy. Agrega tareas desde la pestaña Pendientes. 🌿</div>';
+    return;
   }
-  lastCatMessage=message;
-  return message;
+
+  tasks.forEach((t,index)=>{
+    const card=document.createElement("article");
+    card.className="work-card"+(t.done?" is-done":"");
+    card.dataset.id=t.id;
+    card.draggable=false;
+
+    card.innerHTML=`
+      <div class="order-tools">
+        <span class="order-badge">#${index+1}</span>
+        <button class="drag-handle" type="button" aria-label="Arrastrar tarea">⋮⋮ Arrastrar</button>
+      </div>
+
+      <label class="include">
+        <input type="checkbox" ${t.enabled?"checked":""} ${t.done?"disabled":""}>
+        incluir
+      </label>
+
+      <div class="work-visual">
+        <img alt="" src="${productAsset(t.product)}">
+      </div>
+
+      <div class="item-copy">
+        <div class="work-title">${escapeHtml(t.name)}</div>
+        <div class="work-meta">${escapeHtml(t.product)} · ${escapeHtml(t.course)} · ${escapeHtml(t.iaccStatus)}</div>
+
+        <div class="work-controls">
+          <div>
+            <label>Duración de hoy</label>
+            <input aria-label="Duración de tarea" type="number" min="5" step="5" value="${t.duration}" ${t.done?"disabled":""}>
+          </div>
+
+          <div>
+            <label>Tiempo base</label>
+            <div class="base-time">${humanMin(t.base)}</div>
+          </div>
+        </div>
+      </div>`;
+
+    const checkbox=card.querySelector('[type="checkbox"]');
+    const duration=card.querySelector('[type="number"]');
+    const handle=card.querySelector(".drag-handle");
+
+    checkbox.onchange=e=>{t.enabled=e.target.checked};
+
+    duration.onchange=async e=>{
+      t.duration=Math.max(5,+e.target.value||5);
+      try{
+        await gas("apiUpdateDuration",t.id,t.duration);
+        toast("Duración guardada ✓");
+      }catch(err){
+        toast(err.message,true);
+      }
+      createPlan();
+    };
+
+    handle.addEventListener("mousedown",()=>{card.draggable=true});
+    handle.addEventListener("mouseup",()=>{card.draggable=false});
+    handle.addEventListener("mouseleave",()=>{if(!card.classList.contains("dragging"))card.draggable=false});
+
+    card.addEventListener("dragstart",e=>{
+      if(!card.draggable){e.preventDefault();return}
+      card.classList.add("dragging");
+      e.dataTransfer.effectAllowed="move";
+      e.dataTransfer.setData("text/plain",t.id);
+    });
+
+    card.addEventListener("dragover",e=>{
+      e.preventDefault();
+      e.dataTransfer.dropEffect="move";
+      card.classList.add("drag-over");
+    });
+
+    card.addEventListener("dragleave",()=>card.classList.remove("drag-over"));
+
+    card.addEventListener("drop",async e=>{
+      e.preventDefault();
+      card.classList.remove("drag-over");
+      const sourceId=e.dataTransfer.getData("text/plain");
+      const from=tasks.findIndex(x=>x.id===sourceId);
+      const to=tasks.findIndex(x=>x.id===t.id);
+
+      if(from<0||to<0||from===to)return;
+
+      const [moved]=tasks.splice(from,1);
+      tasks.splice(to,0,moved);
+
+      renderTasks();
+      createPlan();
+
+      try{
+        await gas("apiSaveTaskOrder",tasks.map(x=>x.id));
+        toast("Orden del día guardado ✓");
+      }catch(err){
+        toast(err.message,true);
+      }
+    });
+
+    card.addEventListener("dragend",()=>{
+      card.classList.remove("dragging","drag-over");
+      card.draggable=false;
+      $$(".work-card").forEach(x=>x.classList.remove("drag-over"));
+    });
+
+    root.append(card);
+  });
 }
-function showCatMessage(bubble){
-  if(!bubble)return;
-  playRandomCatSound();
-  pulseCatVisual(bubble);
-  bubble.textContent=randomCatMessage();
-  bubble.classList.add("show");
-  const old=catBubbleTimers.get(bubble);if(old)clearTimeout(old);
-  const timer=setTimeout(()=>bubble.classList.remove("show"),2200);catBubbleTimers.set(bubble,timer);
+function renderBacklog(){
+  const root=$("#backlogList");
+  const items=dashboard?.backlog||[];
+  root.innerHTML="";
+
+  $("#backlogSummary").textContent=`${items.length} tareas aún no completadas en la lista total`;
+
+  if(!items.length){
+    root.innerHTML='<div class="empty-state">No quedan tareas pendientes. ✨</div>';
+    return;
+  }
+
+  items.forEach(t=>{
+    const item=document.createElement("div");
+    item.className="backlog-item";
+
+    const documentButton=t.url
+      ? `<a class="btn mini link-soft" href="${escapeHtml(t.url)}" target="_blank" rel="noopener noreferrer">↗ Documento</a>`
+      : "";
+
+    const planned=t.plannedToday
+      ? '<span class="small-badge ready">✓ En el día</span>'
+      : t.plannedDate
+        ? `<span class="small-badge warn">📅 ${escapeHtml(t.plannedDate)}</span>`
+        : '<span class="small-badge">sin fecha</span>';
+
+    const addButton=t.plannedToday
+      ? '<button class="btn mini add-day" disabled>✓ Agregada al día</button>'
+      : '<button class="btn mini add-day" data-action="addday">＋ Agregar al día</button>';
+
+    item.innerHTML=`
+      <span class="status-dot"></span>
+
+      <div class="grow">
+        <strong>${escapeHtml(t.name)}</strong>
+        <div class="sub">${escapeHtml(t.product)} · ${humanMin(t.duration)} · ${escapeHtml(t.course)}</div>
+        <div class="item-badges">
+          <span class="small-badge">${escapeHtml(t.iaccStatus)}</span>
+          ${planned}
+        </div>
+      </div>
+
+      <div class="list-actions">
+        ${documentButton}
+        ${addButton}
+        <button class="btn mini tomorrow" data-action="tomorrow">🌙 Dejar para mañana</button>
+        <button class="btn mini ready" data-action="ready">✓ Marcar como listo</button>
+      </div>`;
+
+    const add=item.querySelector('[data-action="addday"]');
+    if(add){
+      add.onclick=()=>runBacklogAction("apiAddToToday",t.id,"Tarea agregada al día ＋");
+    }
+
+    item.querySelector('[data-action="tomorrow"]').onclick=()=>runBacklogAction("apiPostponeTomorrow",t.id,"Tarea dejada para mañana 🌙");
+    item.querySelector('[data-action="ready"]').onclick=()=>runBacklogAction("apiMarkReady",t.id,"Tarea marcada como lista ✓");
+
+    root.append(item);
+  });
+}
+async function runBacklogAction(fn,id,message){setSaving(true);try{await gas(fn,id);await refreshDashboard(message)}catch(err){toast(err.message,true)}finally{setSaving(false)}}
+function renderZip(){
+  const root=$("#zipList"),items=dashboard?.zipPending||[];root.innerHTML="";
+  $("#zipSummary").textContent=`${items.length} ZIP pendientes reales en la planilla`;
+  if(!items.length){root.innerHTML='<div class="empty-state">No hay ZIP pendientes. 📦✨</div>';return}
+  items.forEach(t=>{
+    const item=document.createElement("div");item.className="zip-item";
+    const doc=t.url?`<a class="btn mini link-soft" href="${escapeHtml(t.url)}" target="_blank" rel="noopener noreferrer">↗ Documento</a>`:"";
+    item.innerHTML=`<span class="status-dot zip"></span><div class="grow"><strong>${escapeHtml(t.name)}</strong><div class="sub">${escapeHtml(t.course)} · Subido · ZIP pendiente</div></div><div class="list-actions">${doc}<button class="btn mini ready">✓ ZIP listo</button></div>`;
+    item.querySelector("button").onclick=async()=>{setSaving(true);try{await gas("apiZipReady",t.id);await refreshDashboard("ZIP marcado como listo ✓")}catch(err){toast(err.message,true)}finally{setSaving(false)}};
+    root.append(item);
+  });
+}
+function updateCounters(){
+  const backlog=(dashboard?.backlog||[]).length,pendingTotal=dashboard?.pendingTotal||0,zip=(dashboard?.zipPending||[]).length;
+  $("#backlogCount").textContent=backlog;$("#zipCount").textContent=zip;$("#tabBacklogCount").textContent=pendingTotal;$("#tabZipCount").textContent=zip;
+  $("#statDone").textContent=`${dashboard?.completedToday||0} / ${dashboard?.plannedTodayCount||0}`;
+}
+function createPlan(){
+  const fixed=routines.map(r=>({type:"routine",name:r[0]||"Rutina",start:timeToMin(r[1]),end:timeToMin(r[1])+Math.max(5,+r[2]||5),note:r[3]||""})).sort((a,b)=>a.start-b.start);
+  let blocks=[...fixed],cursor=540;
+  tasks.filter(t=>t.enabled&&!t.done).forEach(t=>{
+    let placed=false,guard=0;
+    while(!placed&&guard++<60){
+      const inside=fixed.find(r=>cursor>=r.start&&cursor<r.end);if(inside){cursor=inside.end;continue}
+      const next=fixed.find(r=>r.start>=cursor),available=next?next.start:DAY_END;
+      if(cursor+t.duration<=available){blocks.push({type:"work",name:t.name,start:cursor,end:cursor+t.duration,task:t});cursor+=t.duration;placed=true}
+      else if(next)cursor=next.end;else placed=true;
+    }
+  });
+  blocks.sort((a,b)=>a.start-b.start);
+  const out=[];let pointer=DAY_START;
+  blocks.forEach(b=>{if(b.start>pointer)out.push({type:"free",name:"Espacio libre",start:pointer,end:b.start});out.push(b);pointer=Math.max(pointer,b.end)});
+  if(pointer<DAY_END)out.push({type:"free",name:"Espacio libre",start:pointer,end:DAY_END});
+  plan=out;
+  const work=blocks.filter(b=>b.type==="work");$("#statEnd").textContent=work.length?minToTime(Math.max(...work.map(b=>b.end))):"—";drawTimeline();
+}
+function drawTimeline(){
+  const width=(DAY_END-DAY_START)*PX_PER_MIN,timeline=$("#timeline");timeline.style.width=width+"px";timeline.style.minWidth=width+"px";
+  const hours=$("#hours");hours.innerHTML="";
+  for(let m=DAY_START;m<=DAY_END;m+=30){const x=(m-DAY_START)*PX_PER_MIN,line=document.createElement("span");line.className=m%60===0?"hour-line":"half-line";line.style.left=x+"px";hours.append(line);if(m%60===0){const label=document.createElement("span");label.className="hour-label";label.style.left=x+"px";label.textContent=minToTime(m);hours.append(label)}}
+  const track=$("#track");track.innerHTML="";
+  plan.forEach(b=>{
+    const el=document.createElement("button");el.type="button";const raw=(b.end-b.start)*PX_PER_MIN-5,visualWidth=Math.max(raw,b.type==="free"?96:b.type==="routine"?88:112);
+    el.className="block "+b.type+(visualWidth<150?" short":"")+(raw<86?" micro":"");el.style.left=((b.start-DAY_START)*PX_PER_MIN)+"px";el.style.width=visualWidth+"px";
+    const meta=b.type==="work"?`${b.task.product} · ${b.task.course}`:b.type==="routine"?(b.note?`rutina · ${b.note}`:"rutina personal"):"disponible";
+    el.innerHTML='<span class="name"></span><span class="meta"></span><span class="time"></span>';el.querySelector(".name").textContent=b.name;el.querySelector(".meta").textContent=meta;el.querySelector(".time").textContent=minToTime(b.start)+"–"+minToTime(b.end);
+    if(b.type==="routine"||b.type==="work"){const art=document.createElement("img");art.className="timeline-art";art.alt="";art.src=b.type==="routine"?routineAsset(b.name):productAsset(b.task.product);el.append(art)}
+    el.onclick=()=>selectBlock(b);track.append(el);
+  });
+  $$(".floating-cat").forEach(x=>x.remove());
+  plan.filter(b=>(b.type==="routine"&&/descanso|pausa/i.test(norm(b.name)))||(b.type==="free"&&(b.end-b.start)>=25)).slice(0,8).forEach((b,i)=>{
+    const cat=document.createElement("button");cat.type="button";cat.className="floating-cat"+(i%2?" alt":"");cat.setAttribute("aria-label","Hablar con el gatito");
+    cat.innerHTML=`<span class="cat-mini-bubble"></span><img alt="" src="${catAssets[i%catAssets.length]}">`;
+    const center=((b.start+b.end)/2-DAY_START)*PX_PER_MIN;cat.style.left=Math.max(10,center-38)+"px";cat.style.top=(i%2?40:31)+"px";cat.onclick=e=>{e.stopPropagation();showCatMessage(cat.querySelector(".cat-mini-bubble"))};timeline.append(cat);
+  });
+  setSantiagoNow(false);if(!selected)showCurrentBlock(false);
+}
+function getCurrentTimelineBlock(){const minute=santiagoMinutes();return plan.find(block=>minute>=block.start&&minute<block.end)||null}
+function renderDetailBlock(block,mode="current"){
+  if(!block){$("#detailLabel").textContent=mode==="selected"?"BLOQUE SELECCIONADO":"BLOQUE ACTUAL";$("#detailName").textContent="Sin bloque";$("#detailMeta").textContent="No hay un bloque asociado a esta hora.";$("#detailDuration").textContent="—";$("#workActions").classList.add("hidden");$("#documentLink").classList.add("hidden");return}
+  $("#detailLabel").textContent=mode==="selected"?"BLOQUE SELECCIONADO":"BLOQUE ACTUAL";$("#detailName").textContent=block.name;$("#detailDuration").textContent=humanMin(block.end-block.start);
+  if(block.type==="work"){
+    $("#detailMeta").textContent=`${block.task.product} · ${block.task.course} · ${minToTime(block.start)}–${minToTime(block.end)}`;$("#workActions").classList.remove("hidden");
+    const link=$("#documentLink");if(block.task.url){link.href=block.task.url;link.classList.remove("hidden")}else{link.removeAttribute("href");link.classList.add("hidden")}
+    $("#iaccStatus").value=block.task.iaccStatus;$("#zipStatus").value=block.task.zipStatus;
+  }else{
+    $("#detailMeta").textContent=block.type==="routine"?`Rutina personal · ${minToTime(block.start)}–${minToTime(block.end)}${block.note?" · "+block.note:""}`:`Espacio disponible · ${minToTime(block.start)}–${minToTime(block.end)}`;
+    $("#workActions").classList.add("hidden");$("#documentLink").classList.add("hidden");
+  }
+}
+function showCurrentBlock(scroll=false){
+  selected=null;$("#returnNow").classList.add("hidden");const current=getCurrentTimelineBlock();$$(".block").forEach(el=>el.classList.remove("current-block"));
+  if(current){const index=plan.indexOf(current),el=$("#track").children[index];if(el)el.classList.add("current-block")}renderDetailBlock(current,"current");if(scroll)setSantiagoNow(true);
+}
+function selectBlock(b){selected=b;$("#returnNow").classList.remove("hidden");$$(".block").forEach(el=>el.classList.remove("current-block"));renderDetailBlock(b,"selected")}
+function isBreakRoutine(name){return /descanso|pausa|desayuno|almuerzo|cena/.test(norm(name))}
+function updateNextBreak(currentMinute){
+  const list=plan.filter(b=>b.type==="routine"&&isBreakRoutine(b.name)).sort((a,b)=>a.start-b.start),active=list.find(b=>currentMinute>=b.start&&currentMinute<b.end);
+  if(active){$("#statBreak").textContent="Ahora";$("#statBreakLabel").textContent=`${active.name} · hasta ${minToTime(active.end)}`;return}
+  const next=list.find(b=>b.start>currentMinute);if(!next){$("#statBreak").textContent="—";$("#statBreakLabel").textContent="No hay otro descanso programado";return}
+  $("#statBreak").textContent=humanMin(next.start-currentMinute);$("#statBreakLabel").textContent=`${next.name} · ${minToTime(next.start)}`;
+}
+function setSantiagoNow(scroll=true){
+  const currentMinute=santiagoMinutes(),visible=Math.max(DAY_START,Math.min(DAY_END,currentMinute)),x=(visible-DAY_START)*PX_PER_MIN;
+  $("#nowLine").style.left=x+"px";$("#nowTag").textContent=minToTime(currentMinute);$("#clock").textContent=minToTime(currentMinute);updateNextBreak(currentMinute);if(!selected)showCurrentBlock(false);
+  if(scroll){const sc=$("#timelineScroll");sc.scrollTo({left:Math.max(0,x-sc.clientWidth*.55),behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth"})}
 }
 
-$("#heroCatButton").addEventListener("click",()=>showCatMessage($("#heroCatBubble")));
+$("#heroCatButton").onclick=()=>showCatMessage($("#heroCatBubble"));$("#catCompanion").onclick=()=>showCatMessage($("#catBubble"));$("#returnNow").onclick=()=>showCurrentBlock(true);
+$("#addRoutine").onclick=()=>{routines.push(["Descanso","15:30",15,""]);renderRoutines();queueRoutineSave();createPlan()};
+$("#addMedication").onclick=()=>{routines.push(["Medicamentos","21:30",5,""]);renderRoutines();queueRoutineSave();createPlan()};
+$("#buildDay").onclick=async()=>{
+  const ids=tasks.filter(t=>t.enabled&&!t.done).map(t=>t.id);setSaving(true);
+  try{
+    await Promise.all([gas("apiSaveTodayPlan",ids),gas("apiSaveRoutines",routines.map((r,i)=>({activity:r[0],time:r[1],duration:+r[2]||5,detail:r[3]||"",order:i+1})))]);
+    await refreshDashboard("Tu día quedó guardado en la planilla ✓");setTimeout(()=>setSantiagoNow(true),80);
+  }catch(err){toast(err.message,true)}finally{setSaving(false)}
+};
+$("#resetDay").onclick=()=>{if(!dashboard)return;routines=(dashboard.defaultRoutines||[]).map(r=>[r.activity,r.time,+r.duration||5,r.detail||""]);tasks.forEach(t=>t.enabled=!!t.plannedToday);renderRoutines();renderTasks();createPlan();toast("Vista restablecida. Los cambios se guardan al crear el día.")};
+$("#reduce15").onclick=async()=>{if(selected?.type!=="work")return;selected.task.duration=Math.max(5,selected.task.duration-15);try{await gas("apiUpdateDuration",selected.task.id,selected.task.duration);toast("−15 min guardados ✓")}catch(err){toast(err.message,true)}createPlan()};
+$("#extend15").onclick=async()=>{if(selected?.type!=="work")return;selected.task.duration+=15;try{await gas("apiUpdateDuration",selected.task.id,selected.task.duration);toast("+15 min guardados ✓")}catch(err){toast(err.message,true)}createPlan()};
+$("#completeTask").onclick=async()=>{if(selected?.type!=="work")return;setSaving(true);try{await gas("apiCompleteTask",selected.task.id);await refreshDashboard("Tarea terminada en Nico Days ✓")}catch(err){toast(err.message,true)}finally{setSaving(false)}};
+$("#iaccStatus").onchange=async e=>{if(selected?.type!=="work")return;try{await gas("apiSetStatus",selected.task.id,"iacc",e.target.value);await refreshDashboard("Estado de la tarea guardado ✓")}catch(err){toast(err.message,true)}};
+$("#zipStatus").onchange=async e=>{if(selected?.type!=="work")return;try{await gas("apiSetStatus",selected.task.id,"zip",e.target.value);await refreshDashboard("Estado ZIP guardado ✓")}catch(err){toast(err.message,true)}};
+$$(".tab").forEach(btn=>btn.onclick=()=>{$$(".tab").forEach(x=>x.classList.remove("active"));btn.classList.add("active");$$(".page").forEach(x=>x.classList.add("hidden"));$("#"+btn.dataset.page).classList.remove("hidden")});
 
-$("#returnNow").addEventListener("click",()=>{
-  showCurrentBlock(true);
-});
+updateTimeBackground();setInterval(()=>{updateTimeBackground();setSantiagoNow(false)},60000);refreshDashboard().then(()=>setTimeout(()=>setSantiagoNow(true),120));
 
-$("#addRoutine").addEventListener("click",()=>{routines.push(["Descanso","15:30",15,""]);renderRoutines()});
-$("#buildDay").addEventListener("click",createPlan);
-$("#resetDay").addEventListener("click",()=>{
-  routines=structuredClone(baseRoutines);
-  tasks=baseTasks.map((x,id)=>({id,name:x[0],product:x[1],course:x[2],base:x[3],
-      duration:x[3],
-      url:x[4] || "",enabled:true,done:false,iacc:"Pendiente",zip:"No aplica"}));
-  selected=null;renderRoutines();renderTasks();createPlan();showCurrentBlock(false);
-});
-
-$("#extend15").addEventListener("click",()=>{if(selected?.type!=="work")return;selected.task.duration+=15;renderTasks();createPlan()});
-$("#completeTask").addEventListener("click",()=>{if(selected?.type!=="work")return;selected.task.done=true;renderTasks();createPlan();$("#detailName").textContent="✓ Tarea terminada";$("#detailMeta").textContent="La tarea dejó de ocupar tiempo dentro del día.";$("#workActions").classList.add("hidden")});
-$("#iaccStatus").addEventListener("change",e=>{if(selected?.task)selected.task.iacc=e.target.value});
-$("#zipStatus").addEventListener("change",e=>{if(selected?.task)selected.task.zip=e.target.value});
-$$(".tab").forEach(btn=>btn.addEventListener("click",()=>{$$(".tab").forEach(x=>x.classList.remove("active"));btn.classList.add("active");$$(".page").forEach(x=>x.classList.add("hidden"));$("#"+btn.dataset.page).classList.remove("hidden")}));
-$$(".zipDone").forEach(btn=>btn.addEventListener("click",()=>{const item=btn.closest(".zip-item");item.classList.add("resolved");item.style.opacity=".48";btn.textContent="✓ ZIP listo";btn.disabled=true;updateCounters()}));
-
-$("#catCompanion").addEventListener("click",()=>showCatMessage($("#catBubble")));
-
-updateTimeBackground();setInterval(()=>{
-  updateTimeBackground();
-  setSantiagoNow(false);
-},60000);
-renderRoutines();
-renderTasks();
-createPlan();
-updateCounters();
-setTimeout(()=>{setSantiagoNow(true);showCurrentBlock(false);},120);
 </script>
 </body>
 </html>
