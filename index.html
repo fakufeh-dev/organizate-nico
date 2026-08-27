@@ -1,9 +1,10 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
+<base target="_top">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Nico Days · Live v3</title>
+<title>Nico Days · Direct v1</title>
 <style>
 :root{
   --ink:#26352f;--muted:#6f7c74;--cream:#fffaf0;--green:#6f9276;
@@ -339,6 +340,37 @@ h1{margin:0;font-size:clamp(32px,4.4vw,50px);letter-spacing:-.045em}
 }
 .small-badge.snooze{background:#e9e3f1;color:#645879}
 
+
+.connection-error{
+  margin-top:10px;padding:12px 14px;border-radius:16px;
+  background:#f3dfda;color:#784840;border:1px solid #d9afa7;
+  font-size:12px;font-weight:800;line-height:1.45
+}
+.connection-error button{margin-top:8px}
+
+
+.readonly-note{
+  margin-top:8px;
+  padding:10px 13px;
+  border-radius:14px;
+  background:rgba(245,233,202,.68);
+  color:#695b37;
+  font-size:11px;
+  font-weight:850;
+  line-height:1.45
+}
+.local-tag{
+  display:inline-block;
+  margin-left:4px;
+  padding:2px 5px;
+  border-radius:999px;
+  background:rgba(105,91,55,.11);
+  font-size:8px;
+  font-weight:950;
+  text-transform:uppercase;
+  letter-spacing:.04em
+}
+
 </style>
 </head>
 <body>
@@ -354,9 +386,13 @@ h1{margin:0;font-size:clamp(32px,4.4vw,50px);letter-spacing:-.045em}
       </div>
     </div>
     <div class="hero-tools">
-      <div class="phase-chip"><span class="phase-dot"></span><span id="phaseLabel">—</span></div><div id="syncChip" class="phase-chip sync-chip busy">☁ <span id="syncText">conectando…</span></div>
+      <div class="phase-chip"><span class="phase-dot"></span><span id="phaseLabel">—</span></div><div id="syncChip" class="phase-chip sync-chip busy">☁ <span id="syncText">leyendo planilla…</span></div>
     </div>
   </div>
+<div id="connectionError" class="connection-error hidden">
+  <div id="connectionErrorText"></div>
+  <button id="retryConnection" class="btn mini" type="button">↻ Reintentar conexión</button>
+</div>
 </header>
 
 <nav class="tabs" aria-label="Secciones">
@@ -367,6 +403,9 @@ h1{margin:0;font-size:clamp(32px,4.4vw,50px);letter-spacing:-.045em}
 
 <main>
 <section id="today" class="page">
+<div class="readonly-note">
+  Lectura directa desde <strong>IACC Proyecto</strong>. Los pendientes, ZIP, rutinas y tiempos base se leen desde la Google Sheet pública cada vez que abres o recargas Nico Days. Los cambios que hagas desde esta versión se mantienen solo durante la sesión.
+</div>
   <div class="grid stats">
     <article class="card stat"><small>Próximo descanso</small><strong id="statBreak">—</strong><div class="tiny" id="statBreakLabel">calculando siguiente pausa</div></article>
     <article class="card stat"><small>Fin estimado</small><strong id="statEnd">—</strong><div class="tiny">se recalcula en vivo</div></article>
@@ -420,8 +459,8 @@ h1{margin:0;font-size:clamp(32px,4.4vw,50px);letter-spacing:-.045em}
     </div>
     <div id="workActions" class="actions hidden">
       <a id="documentLink" class="btn doc-link hidden" href="#" target="_blank" rel="noopener noreferrer">↗ Ir al documento</a>
-      <button id="reduce15" class="btn soft">−15 min</button><button id="extend15" class="btn soft">+15 min</button>
-      <button id="completeTask" class="btn">✓ Terminar tarea</button>
+      <button id="reduce15" class="btn soft" title="Cambio local en esta versión">−15 min</button><button id="extend15" class="btn soft" title="Cambio local en esta versión">+15 min</button>
+      <button id="completeTask" class="btn" title="Cambio local en esta versión">✓ Terminar tarea</button>
       <div class="status-control">
         <label for="iaccStatus">Estado de la tarea</label>
         <select id="iaccStatus"><option>Pendiente</option><option>En proceso</option><option>Listo</option><option>Subido</option></select>
@@ -634,14 +673,588 @@ function updateTimeBackground(){
   $("#phaseLabel").textContent=phase.label;
 }
 
-function gas(fn,...args){
+const PUBLIC_SHEET_ID="1mjfheNUOQm3ajlBmlo4CLIsqHE40UZd56QCbjFPKBrg";
+
+function gvizValue(cell){
+  if(cell==null)return"";
+  if(typeof cell==="object"){
+    if(cell.v!==undefined&&cell.v!==null)return cell.v;
+    if(cell.f!==undefined&&cell.f!==null)return cell.f;
+  }
+  return cell;
+}
+
+function loadPublicSheet(sheetName,range=""){
   return new Promise((resolve,reject)=>{
-    if(!(window.google&&google.script&&google.script.run)){reject(new Error("Nico Days Live debe abrirse desde Google Apps Script."));return}
-    const runner=google.script.run.withSuccessHandler(resolve).withFailureHandler(err=>reject(new Error(err?.message||String(err))));
-    runner[fn](...args);
+    const callbackName=
+      "__nicoDaysGviz_"+Date.now()+"_"+Math.floor(Math.random()*100000);
+
+    const params=new URLSearchParams({
+      sheet:sheetName,
+      headers:"1",
+      tqx:`out:json;responseHandler:${callbackName}`
+    });
+
+    if(range)params.set("range",range);
+
+    const url=
+      `https://docs.google.com/spreadsheets/d/${PUBLIC_SHEET_ID}/gviz/tq?${params.toString()}`;
+
+    const script=document.createElement("script");
+    let cleaned=false;
+
+    const cleanup=()=>{
+      if(cleaned)return;
+      cleaned=true;
+      try{delete window[callbackName]}catch(_){}
+      script.remove();
+    };
+
+    const timeout=setTimeout(()=>{
+      cleanup();
+      reject(new Error(`Tiempo agotado leyendo ${sheetName}.`));
+    },15000);
+
+    window[callbackName]=response=>{
+      clearTimeout(timeout);
+
+      try{
+        if(!response||response.status==="error"){
+          const message=
+            response?.errors?.[0]?.detailed_message||
+            response?.errors?.[0]?.message||
+            `Google Sheets no entregó ${sheetName}.`;
+
+          cleanup();
+          reject(new Error(message));
+          return;
+        }
+
+        const table=response.table||{};
+        const cols=(table.cols||[]).map((col,index)=>
+          String(col.label||col.id||`col_${index}`).trim()
+        );
+
+        const rows=(table.rows||[]).map(row=>{
+          const object={};
+
+          (row.c||[]).forEach((cell,index)=>{
+            object[cols[index]]=gvizValue(cell);
+          });
+
+          return object;
+        });
+
+        cleanup();
+        resolve({cols,rows});
+      }catch(error){
+        cleanup();
+        reject(error);
+      }
+    };
+
+    script.onerror=()=>{
+      clearTimeout(timeout);
+      cleanup();
+      reject(
+        new Error(
+          `No se pudo acceder públicamente a ${sheetName}.`
+        )
+      );
+    };
+
+    script.src=url;
+    document.head.appendChild(script);
   });
 }
-function setSync(mode,text){const chip=$("#syncChip");chip.classList.remove("ok","busy","error");chip.classList.add(mode);$("#syncText").textContent=text}
+
+function normalizeHeader(header){
+  return norm(header).replace(/\s+/g,"_");
+}
+
+function rowValue(row,...names){
+  const normalized={};
+
+  Object.entries(row).forEach(([key,value])=>{
+    normalized[normalizeHeader(key)]=value;
+  });
+
+  for(const name of names){
+    const value=normalized[normalizeHeader(name)];
+
+    if(
+      value!==undefined &&
+      value!==null &&
+      String(value)!==""
+    ){
+      return value;
+    }
+  }
+
+  return"";
+}
+
+function canonicalIaccPublic(value){
+  const n=norm(value);
+
+  if(n.includes("proceso")||n==="en curso")return"En proceso";
+  if(n==="listo"||n==="lista")return"Listo";
+  if(n==="subido"||n==="subida")return"Subido";
+
+  return"Pendiente";
+}
+
+function canonicalZipPublic(value){
+  const n=norm(value);
+
+  if(n==="listo"||n==="lista")return"Listo";
+  if(n==="pendiente")return"Pendiente";
+
+  return"No aplica";
+}
+
+function canonicalAppPublic(value){
+  const n=norm(value);
+
+  if(n==="completada"||n==="completado")return"Completada";
+  if(n==="en curso"||n==="en proceso")return"En curso";
+  if(n==="pausada"||n==="pausado")return"Pausada";
+  if(n==="bloqueada"||n==="bloqueado")return"Bloqueada";
+
+  return"Pendiente";
+}
+
+function toDateKeyPublic(value){
+  if(!value)return"";
+
+  if(value instanceof Date&&!isNaN(value)){
+    return new Intl.DateTimeFormat("en-CA",{
+      timeZone:"America/Santiago",
+      year:"numeric",
+      month:"2-digit",
+      day:"2-digit"
+    }).format(value);
+  }
+
+  const text=String(value).trim();
+
+  const gvizDate=text.match(
+    /Date\((\d+),(\d+),(\d+)(?:,\d+,\d+,\d+)?\)/
+  );
+
+  if(gvizDate){
+    const year=+gvizDate[1];
+    const month=+gvizDate[2]+1;
+    const day=+gvizDate[3];
+
+    return(
+      `${year}-${String(month).padStart(2,"0")}-${String(day).padStart(2,"0")}`
+    );
+  }
+
+  if(/^\d{4}-\d{2}-\d{2}$/.test(text))return text;
+
+  const parsed=new Date(text);
+
+  if(!isNaN(parsed)){
+    return new Intl.DateTimeFormat("en-CA",{
+      timeZone:"America/Santiago",
+      year:"numeric",
+      month:"2-digit",
+      day:"2-digit"
+    }).format(parsed);
+  }
+
+  return text.slice(0,10);
+}
+
+function publicTime(value){
+  if(!value)return"12:00";
+
+  if(value instanceof Date&&!isNaN(value)){
+    return new Intl.DateTimeFormat("en-GB",{
+      timeZone:"America/Santiago",
+      hour:"2-digit",
+      minute:"2-digit",
+      hourCycle:"h23"
+    }).format(value);
+  }
+
+  const text=String(value);
+
+  const dateTime=text.match(
+    /Date\(\d+,\d+,\d+,(\d+),(\d+),\d+\)/
+  );
+
+  if(dateTime){
+    return(
+      `${String(+dateTime[1]).padStart(2,"0")}:${String(+dateTime[2]).padStart(2,"0")}`
+    );
+  }
+
+  const m=text.match(/(\d{1,2}):(\d{2})/);
+
+  return m
+    ? `${String(+m[1]).padStart(2,"0")}:${m[2]}`
+    : "12:00";
+}
+
+async function loadDashboardDirect(){
+  const [taskData,routineData,productData]=await Promise.all([
+    loadPublicSheet("APP_DB_Tareas","A1:AS1200"),
+    loadPublicSheet("APP_DB_Rutinas","A1:J1000"),
+    loadPublicSheet("APP_CAT_Productos","A1:G100")
+  ]);
+
+  const baseTimes={};
+
+  productData.rows.forEach(row=>{
+    const product=String(
+      rowValue(row,"Producto")||""
+    ).trim();
+
+    const minutes=Number(
+      rowValue(row,"Tiempo_Promedio_Min")
+    )||0;
+
+    if(product&&minutes>0){
+      baseTimes[product]=minutes;
+    }
+  });
+
+  const now=getSantiagoParts();
+
+  const today=
+    `${now.year}-${String(now.month).padStart(2,"0")}-${String(now.day).padStart(2,"0")}`;
+
+  const allTasks=taskData.rows
+    .filter(row=>{
+      const responsible=norm(
+        rowValue(row,"Responsable")
+      );
+
+      const active=norm(
+        rowValue(row,"Activo")
+      );
+
+      const name=String(
+        rowValue(row,"Nombre_Recurso")||""
+      ).trim();
+
+      return(
+        responsible==="nico" &&
+        ["si","sí","yes","true","1"].includes(active) &&
+        !!name
+      );
+    })
+    .map((row,index)=>{
+      const product=String(
+        rowValue(row,"Producto")||"Otro"
+      ).trim()||"Otro";
+
+      const iaccStatus=canonicalIaccPublic(
+        rowValue(
+          row,
+          "Estado_IACC_App",
+          "Estado_Origen"
+        )
+      );
+
+      const zipStatus=canonicalZipPublic(
+        rowValue(
+          row,
+          "ZIP_App",
+          "ZIP_Origen"
+        )
+      );
+
+      const stateApp=canonicalAppPublic(
+        rowValue(
+          row,
+          "Estado_Tarea_App"
+        )
+      );
+
+      const currentDuration=
+        Number(
+          rowValue(
+            row,
+            "Tiempo_Estimado_Min"
+          )
+        )||
+        Number(baseTimes[product])||
+        30;
+
+      return{
+        id:String(
+          rowValue(row,"ID_Tarea")||
+          `ROW-${index+2}`
+        ),
+
+        row:index+2,
+
+        course:String(
+          rowValue(row,"Asignatura")||""
+        ),
+
+        name:String(
+          rowValue(row,"Nombre_Recurso")||""
+        ),
+
+        type:String(
+          rowValue(row,"Tipo_Recurso")||""
+        ),
+
+        product,
+
+        moment:String(
+          rowValue(row,"Momento")||""
+        ),
+
+        week:String(
+          rowValue(row,"Semana")||""
+        ),
+
+        url:String(
+          rowValue(row,"Archivo_Original")||""
+        ),
+
+        detail:String(
+          rowValue(row,"Detalle_Origen")||""
+        ),
+
+        iaccStatus,
+        zipStatus,
+        stateApp,
+
+        snoozeUntil:toDateKeyPublic(
+          rowValue(row,"Posponer_Hasta")
+        ),
+
+        duration:Math.max(
+          5,
+          currentDuration
+        ),
+
+        baseTime:
+          Number(baseTimes[product])||
+          Math.max(5,currentDuration),
+
+        actual:
+          Number(
+            rowValue(
+              row,
+              "Tiempo_Real_Min"
+            )
+          )||0,
+
+        priority:String(
+          rowValue(row,"Prioridad")||
+          "Media"
+        ),
+
+        orderDay:
+          Number(
+            rowValue(
+              row,
+              "Orden_Dia"
+            )
+          )||0,
+
+        done:
+          stateApp==="Completada",
+
+        lastUpdateDate:
+          toDateKeyPublic(
+            rowValue(
+              row,
+              "Ultima_Actualizacion"
+            )
+          )
+      };
+    });
+
+  const pendingAll=allTasks
+    .filter(task=>
+      task.iaccStatus==="Pendiente" ||
+      task.iaccStatus==="En proceso"
+    )
+    .sort((a,b)=>{
+      const ao=
+        Number(a.orderDay)||
+        999999;
+
+      const bo=
+        Number(b.orderDay)||
+        999999;
+
+      if(ao!==bo)return ao-bo;
+
+      if(a.course!==b.course){
+        return a.course.localeCompare(
+          b.course
+        );
+      }
+
+      return a.name.localeCompare(
+        b.name
+      );
+    });
+
+  const workQueue=pendingAll.filter(
+    task=>
+      !task.snoozeUntil ||
+      task.snoozeUntil<=today
+  );
+
+  const zipPending=allTasks
+    .filter(task=>
+      task.iaccStatus==="Subido" &&
+      task.zipStatus==="Pendiente"
+    )
+    .sort((a,b)=>
+      a.course.localeCompare(b.course)||
+      a.name.localeCompare(b.name)
+    );
+
+  const completedToday=allTasks.filter(
+    task=>
+      task.stateApp==="Completada" &&
+      task.lastUpdateDate===today
+  ).length;
+
+  let routines=routineData.rows
+    .filter(row=>{
+      const responsible=norm(
+        rowValue(row,"Responsable")
+      );
+
+      const mode=norm(
+        rowValue(row,"Fecha")
+      );
+
+      const active=norm(
+        rowValue(row,"Activo")
+      );
+
+      return(
+        responsible==="nico" &&
+        mode==="base" &&
+        ["si","sí","yes","true","1"].includes(active)
+      );
+    })
+    .sort((a,b)=>
+      (Number(rowValue(a,"Orden"))||0)-
+      (Number(rowValue(b,"Orden"))||0)
+    )
+    .map((row,index)=>({
+      id:String(
+        rowValue(row,"ID_Rutina")||
+        `BASE-${index+1}`
+      ),
+
+      activity:String(
+        rowValue(row,"Actividad")||
+        "Rutina"
+      ),
+
+      time:publicTime(
+        rowValue(row,"Hora")
+      ),
+
+      duration:Math.max(
+        5,
+        Number(
+          rowValue(
+            row,
+            "Duracion_Min"
+          )
+        )||5
+      ),
+
+      detail:String(
+        rowValue(row,"Detalle")||""
+      ),
+
+      order:
+        Number(
+          rowValue(row,"Orden")
+        )||index+1
+    }));
+
+  if(!routines.length){
+    routines=[
+      {
+        activity:"Ducha",
+        time:"08:00",
+        duration:20,
+        detail:"",
+        order:1
+      },
+      {
+        activity:"Desayuno",
+        time:"08:30",
+        duration:30,
+        detail:"",
+        order:2
+      },
+      {
+        activity:"Almuerzo",
+        time:"13:30",
+        duration:45,
+        detail:"",
+        order:3
+      },
+      {
+        activity:"Cena",
+        time:"20:30",
+        duration:45,
+        detail:"",
+        order:4
+      },
+      {
+        activity:"Medicamentos",
+        time:"21:20",
+        duration:5,
+        detail:"",
+        order:5
+      }
+    ];
+  }
+
+  return{
+    ok:true,
+    version:"Nico Days Direct 1.0",
+    responsible:"Nico",
+    today,
+    pendingTotal:pendingAll.length,
+    backlog:pendingAll,
+    workQueue,
+    zipPending,
+    completedToday,
+    routines,
+    defaultRoutines:routines.map(
+      routine=>({...routine})
+    )
+  };
+}
+
+function setSync(mode,text){
+  const chip=$("#syncChip");
+  chip.classList.remove("ok","busy","error");
+  chip.classList.add(mode);
+  $("#syncText").textContent=text;
+}
+
+function showConnectionError(message){
+  $("#connectionErrorText").textContent=message;
+  $("#connectionError").classList.remove("hidden");
+}
+
+function hideConnectionError(){
+  $("#connectionError").classList.add("hidden");
+  $("#connectionErrorText").textContent="";
+}
 function setSaving(value){$("#savingMask").classList.toggle("hidden",!value)}
 function toast(message,error=false){const el=$("#toast");el.textContent=message;el.classList.toggle("error",error);el.classList.add("show");clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove("show"),2600)}
 function timeToMin(t){const [h,m]=String(t||"00:00").split(":").map(Number);return h*60+m}
@@ -659,19 +1272,69 @@ function hydrateDashboard(data){
   renderRoutines();renderTasks();renderBacklog();renderZip();updateCounters();createPlan();
 }
 async function refreshDashboard(message=""){
-  setSync("busy","sincronizando…");
-  try{const data=await gas("apiLoadDashboard");hydrateDashboard(data);setSync("ok","sincronizado");if(message)toast(message)}
-  catch(err){setSync("error","error de conexión");toast(err.message,true)}
+  setSync(
+    "busy",
+    "leyendo planilla…"
+  );
+
+  hideConnectionError();
+
+  try{
+    const data=
+      await loadDashboardDirect();
+
+    hydrateDashboard(data);
+
+    setSync(
+      "ok",
+      `planilla directa · ${data.pendingTotal||0} pendientes`
+    );
+
+    if(message){
+      toast(message);
+    }
+  }catch(error){
+    const detail=
+      error?.message||
+      String(error);
+
+    setSync(
+      "error",
+      "error de lectura"
+    );
+
+    showConnectionError(
+      "No se pudieron leer los datos públicos de IACC Proyecto. "+
+      detail
+    );
+
+    toast(
+      detail,
+      true
+    );
+
+    console.error(
+      "Nico Days public sheet error:",
+      error
+    );
+  }
 }
+
 function queueRoutineSave(){
   clearTimeout(routineSaveTimer);
-  routineSaveTimer=setTimeout(async()=>{
-    try{
-      await gas("apiSaveRoutines",routines.map((r,i)=>({activity:r[0],time:r[1],duration:+r[2]||5,detail:r[3]||"",order:i+1})));
-      setSync("ok","rutinas guardadas");
-    }catch(err){toast(err.message,true)}
-  },850);
+
+  routineSaveTimer=setTimeout(()=>{
+    setSync(
+      "ok",
+      "cambio local"
+    );
+
+    toast(
+      "Rutina actualizada en esta sesión"
+    );
+  },350);
 }
+
 function renderRoutines(){
   const root=$("#routineList");root.innerHTML="";
   routines.forEach((r,i)=>{
@@ -757,12 +1420,7 @@ function renderTasks(){
 
     duration.onchange=async e=>{
       t.duration=Math.max(5,+e.target.value||5);
-      try{
-        await gas("apiUpdateDuration",t.id,t.duration);
-        toast("Duración guardada ✓");
-      }catch(err){
-        toast(err.message,true);
-      }
+      toast("Duración ajustada en esta sesión ✓");
       createPlan();
     };
 
@@ -801,12 +1459,7 @@ function renderTasks(){
 
       createPlan();
 
-      try{
-        await gas("apiSaveTaskOrder",tasks.map(x=>x.id));
-        toast("Prioridad de trabajo guardada ✓");
-      }catch(err){
-        toast(err.message,true);
-      }
+      toast("Prioridad actualizada en esta sesión ✓");
     });
 
     card.addEventListener("dragend",()=>{
@@ -869,7 +1522,119 @@ function renderBacklog(){
     root.append(item);
   });
 }
-async function runBacklogAction(fn,id,message){setSaving(true);try{await gas(fn,id);await refreshDashboard(message)}catch(err){toast(err.message,true)}finally{setSaving(false)}}
+async function runBacklogAction(fn,id,message){
+  const task=
+    (dashboard?.backlog||[])
+      .find(item=>item.id===id);
+
+  if(!task)return;
+
+  if(fn==="apiPrioritizeTask"){
+    const index=
+      tasks.findIndex(
+        item=>item.id===id
+      );
+
+    if(index>=0){
+      const [moved]=
+        tasks.splice(index,1);
+
+      tasks.unshift(moved);
+
+      createPlan();
+    }
+
+    toast(
+      "Priorizada en esta sesión ↑"
+    );
+
+    return;
+  }
+
+  if(fn==="apiPostponeTomorrow"){
+    const now=getSantiagoParts();
+
+    const tomorrow=
+      new Date(
+        Date.UTC(
+          now.year,
+          now.month-1,
+          now.day+1,
+          12,
+          0,
+          0
+        )
+      );
+
+    task.snoozeUntil=
+      new Intl.DateTimeFormat(
+        "en-CA",
+        {
+          timeZone:"America/Santiago",
+          year:"numeric",
+          month:"2-digit",
+          day:"2-digit"
+        }
+      ).format(tomorrow);
+
+    dashboard.workQueue=
+      (dashboard.workQueue||[])
+        .filter(
+          item=>item.id!==id
+        );
+
+    tasks=
+      tasks.filter(
+        item=>item.id!==id
+      );
+
+    renderBacklog();
+    updateCounters();
+    createPlan();
+
+    toast(
+      "Pausada hasta mañana en esta sesión 🌙"
+    );
+
+    return;
+  }
+
+  if(fn==="apiMarkReady"){
+    task.iaccStatus="Listo";
+
+    dashboard.backlog=
+      (dashboard.backlog||[])
+        .filter(
+          item=>item.id!==id
+        );
+
+    dashboard.workQueue=
+      (dashboard.workQueue||[])
+        .filter(
+          item=>item.id!==id
+        );
+
+    dashboard.pendingTotal=
+      Math.max(
+        0,
+        (dashboard.pendingTotal||0)-1
+      );
+
+    tasks=
+      tasks.filter(
+        item=>item.id!==id
+      );
+
+    renderBacklog();
+    updateCounters();
+    createPlan();
+
+    toast(
+      "Marcada como lista en esta sesión ✓"
+    );
+  }
+}
+
 function renderZip(){
   const root=$("#zipList"),items=dashboard?.zipPending||[];root.innerHTML="";
   $("#zipSummary").textContent=`${items.length} ZIP pendientes reales en la planilla`;
@@ -878,7 +1643,13 @@ function renderZip(){
     const item=document.createElement("div");item.className="zip-item";
     const doc=t.url?`<a class="btn mini link-soft" href="${escapeHtml(t.url)}" target="_blank" rel="noopener noreferrer">↗ Documento</a>`:"";
     item.innerHTML=`<span class="status-dot zip"></span><div class="grow"><strong>${escapeHtml(t.name)}</strong><div class="sub">${escapeHtml(t.course)} · Subido · ZIP pendiente</div></div><div class="list-actions">${doc}<button class="btn mini ready">✓ ZIP listo</button></div>`;
-    item.querySelector("button").onclick=async()=>{setSaving(true);try{await gas("apiZipReady",t.id);await refreshDashboard("ZIP marcado como listo ✓")}catch(err){toast(err.message,true)}finally{setSaving(false)}};
+    item.querySelector("button").onclick=()=>{
+      t.zipStatus="Listo";
+      dashboard.zipPending=(dashboard.zipPending||[]).filter(item=>item.id!==t.id);
+      renderZip();
+      updateCounters();
+      toast("ZIP marcado listo en esta sesión ✓");
+    };
     root.append(item);
   });
 }
@@ -1041,6 +1812,7 @@ function setSantiagoNow(scroll=true){
   if(scroll){const sc=$("#timelineScroll");sc.scrollTo({left:Math.max(0,x-sc.clientWidth*.55),behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth"})}
 }
 
+$("#retryConnection").onclick=()=>refreshDashboard();
 $("#heroCatButton").onclick=()=>showCatMessage($("#heroCatBubble"));$("#catCompanion").onclick=()=>showCatMessage($("#catBubble"));$("#returnNow").onclick=()=>showCurrentBlock(true);
 $("#addRoutine").onclick=()=>{routines.push(["Descanso","15:30",15,""]);renderRoutines();queueRoutineSave();createPlan()};
 $("#addMedication").onclick=()=>{routines.push(["Medicamentos","21:30",5,""]);renderRoutines();queueRoutineSave();createPlan()};
@@ -1058,20 +1830,60 @@ $("#resetDay").onclick=async()=>{
   renderRoutines();
   createPlan();
 
-  try{
-    await gas("apiSaveRoutines",routines.map((r,i)=>({
-      activity:r[0],time:r[1],duration:+r[2]||5,detail:r[3]||"",order:i+1
-    })));
-    toast("Rutina base restablecida y guardada ✓");
-  }catch(err){
-    toast(err.message,true);
-  }
+  toast("Rutina base restablecida en esta sesión ✓");
 };
-$("#reduce15").onclick=async()=>{if(selected?.type!=="work")return;selected.task.duration=Math.max(5,selected.task.duration-15);try{await gas("apiUpdateDuration",selected.task.id,selected.task.duration);toast("−15 min guardados ✓")}catch(err){toast(err.message,true)}createPlan()};
-$("#extend15").onclick=async()=>{if(selected?.type!=="work")return;selected.task.duration+=15;try{await gas("apiUpdateDuration",selected.task.id,selected.task.duration);toast("+15 min guardados ✓")}catch(err){toast(err.message,true)}createPlan()};
-$("#completeTask").onclick=async()=>{if(selected?.type!=="work")return;setSaving(true);try{await gas("apiCompleteTask",selected.task.id);await refreshDashboard("Tarea terminada en Nico Days ✓")}catch(err){toast(err.message,true)}finally{setSaving(false)}};
-$("#iaccStatus").onchange=async e=>{if(selected?.type!=="work")return;try{await gas("apiSetStatus",selected.task.id,"iacc",e.target.value);await refreshDashboard("Estado de la tarea guardado ✓")}catch(err){toast(err.message,true)}};
-$("#zipStatus").onchange=async e=>{if(selected?.type!=="work")return;try{await gas("apiSetStatus",selected.task.id,"zip",e.target.value);await refreshDashboard("Estado ZIP guardado ✓")}catch(err){toast(err.message,true)}};
+$("#reduce15").onclick=()=>{
+  if(selected?.type!=="work")return;
+  selected.task.duration=Math.max(5,selected.task.duration-15);
+  toast("−15 min aplicado en esta sesión ✓");
+  createPlan();
+};
+$("#extend15").onclick=()=>{
+  if(selected?.type!=="work")return;
+  selected.task.duration+=15;
+  toast("+15 min aplicado en esta sesión ✓");
+  createPlan();
+};
+$("#completeTask").onclick=()=>{
+  if(selected?.type!=="work")return;
+
+  const task=selected.task;
+
+  task.done=true;
+  task.stateApp="Completada";
+
+  dashboard.completedToday=
+    (dashboard.completedToday||0)+1;
+
+  dashboard.workQueue=
+    (dashboard.workQueue||[])
+      .filter(
+        item=>item.id!==task.id
+      );
+
+  tasks=
+    tasks.filter(
+      item=>item.id!==task.id
+    );
+
+  createPlan();
+  updateCounters();
+  showCurrentBlock(false);
+
+  toast(
+    "Tarea terminada en esta sesión ✓"
+  );
+};
+$("#iaccStatus").onchange=e=>{
+  if(selected?.type!=="work")return;
+  selected.task.iaccStatus=e.target.value;
+  toast("Estado cambiado localmente ✓");
+};
+$("#zipStatus").onchange=e=>{
+  if(selected?.type!=="work")return;
+  selected.task.zipStatus=e.target.value;
+  toast("Estado ZIP cambiado localmente ✓");
+};
 $$(".tab").forEach(btn=>btn.onclick=()=>{$$(".tab").forEach(x=>x.classList.remove("active"));btn.classList.add("active");$$(".page").forEach(x=>x.classList.add("hidden"));$("#"+btn.dataset.page).classList.remove("hidden")});
 
 updateTimeBackground();setInterval(()=>{updateTimeBackground();setSantiagoNow(false)},60000);refreshDashboard().then(()=>setTimeout(()=>setSantiagoNow(true),120));
