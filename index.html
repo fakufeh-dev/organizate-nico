@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#6d8d73">
-<title>Nico Days · Forms + Calendario</title>
+<title>Nico Days · Forms + Calendario v2</title>
 <style>
 :root{
   --cream:#f7f2e7;
@@ -274,13 +274,189 @@ a{color:inherit}
   .modal{padding:15px;border-radius:21px}
   .alarm-cat{font-size:66px}.alarm-task-name{font-size:18px}
 }
+
+:root{
+  --bg-pattern:none;
+}
+body::before{
+  content:"";
+  position:fixed;
+  inset:0;
+  pointer-events:none;
+  z-index:-1;
+  background-image:var(--bg-pattern);
+  background-position:center top;
+  background-size:cover;
+  opacity:.075;
+  filter:saturate(.75);
+}
+.asset-img{
+  display:block;
+  width:100%;
+  height:100%;
+  object-fit:contain;
+}
+.logo{
+  overflow:hidden;
+  padding:6px;
+}
+.logo img{
+  width:100%;
+  height:100%;
+  object-fit:contain;
+}
+.cat-figure{
+  width:100%;
+  height:104px;
+  display:flex;
+  justify-content:flex-end;
+  align-items:flex-end;
+  font-size:0;
+}
+.cat-figure img{
+  width:118px;
+  max-height:102px;
+  object-fit:contain;
+  filter:drop-shadow(0 9px 11px rgba(55,72,60,.13));
+}
+.task-icon{
+  overflow:hidden;
+  padding:4px;
+}
+.task-icon img{
+  width:100%;
+  height:100%;
+  object-fit:contain;
+}
+.routine-card-head{
+  display:grid;
+  grid-template-columns:52px minmax(0,1fr);
+  gap:10px;
+  align-items:center;
+  margin-bottom:8px;
+}
+.routine-thumb{
+  width:52px;
+  height:52px;
+  border-radius:14px;
+  overflow:hidden;
+  background:var(--green4);
+  padding:4px;
+}
+.routine-thumb img{
+  width:100%;
+  height:100%;
+  object-fit:contain;
+}
+.floating-cat{
+  overflow:hidden;
+  padding:5px;
+  font-size:0;
+}
+.floating-cat img{
+  width:100%;
+  height:100%;
+  object-fit:contain;
+}
+.alarm-cat{
+  width:120px;
+  height:120px;
+  margin:0 auto 4px;
+  font-size:0;
+}
+.alarm-cat img{
+  width:100%;
+  height:100%;
+  object-fit:contain;
+  filter:drop-shadow(0 12px 14px rgba(53,67,57,.14));
+}
+.form-integrated{
+  padding:15px;
+  background:linear-gradient(145deg,rgba(220,233,216,.75),rgba(255,253,248,.93));
+}
+.form-badge{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  margin-bottom:8px;
+  padding:5px 8px;
+  border-radius:999px;
+  background:#fffdf8;
+  border:1px solid rgba(72,102,84,.10);
+  color:#52705a;
+  font-size:9px;
+  font-weight:950;
+}
+.form-url{
+  display:block;
+  margin:8px 0 12px;
+  color:var(--muted);
+  font-size:9px;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.form-modal{
+  width:min(760px,100%);
+  height:min(88vh,850px);
+  display:flex;
+  flex-direction:column;
+  padding:12px;
+}
+.form-modal-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:10px;
+  padding:3px 4px 10px;
+}
+.form-frame-wrap{
+  flex:1;
+  min-height:0;
+  overflow:hidden;
+  border:1px solid var(--line);
+  border-radius:18px;
+  background:#fff;
+}
+.form-frame{
+  width:100%;
+  height:100%;
+  border:0;
+  background:#fff;
+}
+.form-fallback{
+  padding:8px 4px 0;
+  color:var(--muted);
+  font-size:9px;
+  text-align:center;
+}
+.hero-side{
+  overflow:hidden;
+}
+@media(max-width:620px){
+  .cat-figure{height:82px}
+  .cat-figure img{width:95px;max-height:80px}
+  .routine-card-head{
+    grid-template-columns:44px minmax(0,1fr);
+  }
+  .routine-thumb{
+    width:44px;
+    height:44px;
+  }
+  .form-modal{
+    height:94vh;
+    padding:8px;
+    border-radius:18px;
+  }
+}
+
 </style>
 </head>
 <body>
 <div class="shell">
   <header class="topbar">
     <div class="brand">
-      <div class="logo">🐾</div>
+      <div class="logo"><img id="brandCat" alt="Nico Days"></div>
       <div class="brand-copy">
         <h1>Nico Days</h1>
         <p>Captura tareas → planifica el calendario → vive el día de hoy.</p>
@@ -305,7 +481,7 @@ a{color:inherit}
           <p>La agenda se construye desde las tareas capturadas y tu rutina base. Las tareas recurrentes generan sus propias ocurrencias y el planificador busca un espacio antes de la hora de cierre.</p>
         </div>
         <div class="hero-side">
-          <div class="cat-figure" id="heroCat">🐈</div>
+          <div class="cat-figure" id="heroCat"><img id="heroCatImg" alt="Gato Nico Days"></div>
           <div class="cat-quote" id="heroQuote">“Una cosa a la vez. El resto puede esperar.”</div>
         </div>
       </div>
@@ -382,7 +558,7 @@ a{color:inherit}
             <div class="section-head">
               <div>
                 <h3>Bandeja de tareas</h3>
-                <p>Las respuestas de Forms alimentan esta lista y luego el calendario.</p>
+                <p>Las respuestas del formulario alimentan esta bandeja desde la base de datos de Drive y luego pasan al calendario.</p>
               </div>
               <button id="refreshTasks" class="btn soft">↻ Actualizar</button>
             </div>
@@ -397,17 +573,17 @@ a{color:inherit}
         </div>
 
         <aside>
-          <section class="card forms-card">
+          <section class="card form-integrated">
+            <div class="form-badge">✓ Formulario conectado</div>
             <div class="eyebrow">Entrada de tareas</div>
-            <h3>Google Forms</h3>
-            <p>Guarda aquí el enlace de tu formulario. Las nuevas respuestas deben alimentar la hoja de tareas que Nico Days lee.</p>
-            <label class="field">
-              <span>URL del formulario</span>
-              <input id="formUrl" type="url" placeholder="https://forms.gle/…">
-            </label>
+            <h3 style="margin:4px 0 5px">Agregar nueva tarea</h3>
+            <p style="font-size:10px;color:var(--muted);line-height:1.45;margin:0">
+              Completa el formulario y después pulsa <strong>Actualizar</strong> en la bandeja para cargar las nuevas respuestas desde la base de datos.
+            </p>
+            <span class="form-url">forms.gle/aAFknYxWf8vYXucN6</span>
             <div class="actions">
-              <button id="saveFormUrl" class="btn soft">Guardar enlace</button>
-              <button id="openForm" class="btn">＋ Agregar tarea</button>
+              <button id="openForm" class="btn">＋ Abrir formulario</button>
+              <a id="openFormExternal" class="btn ghost" href="https://forms.gle/aAFknYxWf8vYXucN6" target="_blank" rel="noopener">↗ Nueva pestaña</a>
             </div>
           </section>
 
@@ -466,7 +642,7 @@ a{color:inherit}
   </main>
 </div>
 
-<button class="floating-cat" id="floatingCat" aria-label="Mensaje del gato">🐱</button>
+<button class="floating-cat" id="floatingCat" aria-label="Mensaje del gato"><img id="floatingCatImg" alt=""></button>
 <div id="toast" class="toast"></div>
 
 <div id="detailBackdrop" class="modal-backdrop hidden">
@@ -487,9 +663,40 @@ a{color:inherit}
   </div>
 </div>
 
+
+<div id="formBackdrop" class="modal-backdrop hidden">
+  <div class="modal form-modal">
+    <div class="form-modal-head">
+      <div>
+        <div class="eyebrow">Nueva tarea</div>
+        <strong>Google Forms</strong>
+      </div>
+      <div class="actions">
+        <a class="btn ghost" href="https://forms.gle/aAFknYxWf8vYXucN6" target="_blank" rel="noopener">↗ Abrir aparte</a>
+        <button id="closeForm" class="btn ghost">✕</button>
+      </div>
+    </div>
+
+    <div class="form-frame-wrap">
+      <iframe
+        id="formFrame"
+        class="form-frame"
+        title="Formulario para agregar tareas"
+        src="about:blank"
+        loading="lazy"
+        allow="clipboard-write">
+      </iframe>
+    </div>
+
+    <div class="form-fallback">
+      Si Google no permite mostrar el formulario dentro de esta ventana, usa “Abrir aparte”.
+    </div>
+  </div>
+</div>
+
 <div id="alarmBackdrop" class="modal-backdrop hidden">
   <div class="modal alarm-modal">
-    <div class="alarm-cat" id="alarmCat">🐱</div>
+    <div class="alarm-cat" id="alarmCat"><img id="alarmCatImg" alt="Alarma de gatito"></div>
     <div class="alarm-bubble" id="alarmBubble">¡Miau! Es hora de empezar.</div>
     <div class="alarm-task-name" id="alarmTaskName">Tarea</div>
     <div class="alarm-meta" id="alarmTaskMeta">—</div>
@@ -506,6 +713,92 @@ a{color:inherit}
 
 <script>
 const SHEET_ID="1mjfheNUOQm3ajlBmlo4CLIsqHE40UZd56QCbjFPKBrg";
+const FORM_URL="https://forms.gle/aAFknYxWf8vYXucN6";
+
+const DRIVE_ASSETS={
+  cats:[
+    "1xQDpXowcFBaGO4FCBbDXwB0fOLaMuupD",
+    "1mvAhieyHy2oNIr8z7y-CIrWr-OzwsJ2w",
+    "1YvQoM1LqKmnT7JpNQgkGOq1IJAhsKM2d",
+    "1gudiG0v_2GoZZKCOlb_f2u1Wylx4PJic"
+  ],
+
+  routines:{
+    "ducha":"16ipodCW3TDvJjdqd1ielrAE5kVmYEVJP",
+    "desayuno":"1XUaCS6UVdByH8Txg_mnRjMKOvIuN_jWy",
+    "descanso":"1DIPE99ZKV5LQLDFGtTEh0ig4dtwPhpRR",
+    "pausa":"1DIPE99ZKV5LQLDFGtTEh0ig4dtwPhpRR",
+    "medicamentos":"1X9dn9be6ZBi-lEJ-X3pnZN8XCd6yrKAQ",
+    "medicamento":"1X9dn9be6ZBi-lEJ-X3pnZN8XCd6yrKAQ",
+    "almuerzo":"1YrZcyAjfSagzsVVa70Z8W9l9C2SHfgE3",
+    "sueno":"1Lm_nKiFhY_l1x8XOP3GwuSvXMqkQ8QDR",
+    "cena":"1EI3Ey_bE762mpFRBZsWsXSGQpTWOEUaT"
+  },
+
+  products:{
+    "contenido":"1V9Pr_BtEyU8jaJvKg7scGvu3GGU29D3G",
+    "imagen":"1KXrQfZWTz-AHHf51pt43JTJKMb6ttLKs",
+    "infografia":"1GqP99lqiU42yaWJw-CfHRQipOs0S-kFJ",
+    "interactivo":"1_HelzYzFvGPSkx_1Bn0AUjp0Fq8idco4",
+    "nota":"185jjC4SBT9B97VULZ_btsnMf6H75SFEs",
+    "organizador grafico":"1AWOFqfotFbN9LsueNiEFz9Sa-5wpwHz7",
+    "podcast":"1rwCZ8r6dkHVxNM0HRvyuFD3W1uPQatmh",
+    "presentacion":"1Y6S5z_gN8qBAQISblmjnsSwVELHGcL5a",
+    "resumen":"1srZFNXd5mtjsPTqt1oiMqueGmIdWaDUL",
+    "ruta de aprendizaje":"1FmCj8h5iAsjjAZPNdtUyvQRyRYn4u0Eu",
+    "video":"1tllGSLaYKpH6mY2F5-6El8EKj-Q2grO8"
+  },
+
+  patterns:{
+    dawn:"1mx71VfAQK1qeFbtuPevjEYahqAHInbWa",
+    morning:"1ueAYTJ663-AJNpU1myovylczqlCq-D_j",
+    afternoon:"1z_9pYiD4ox1zOGfc4ZYhOGQvf6PcGfBg",
+    dusk:"11OMQXgfyHQhYxq63zcsAhTbTaGSAMmbN",
+    night:"1RwO5Oj6dcPScj1gRCNdTeOI--lPN1ApB"
+  }
+};
+
+function driveImg(id,size=500){
+  return `https://drive.google.com/thumbnail?id=${encodeURIComponent(id)}&sz=w${size}`;
+}
+function catAsset(index=0){
+  return driveImg(DRIVE_ASSETS.cats[index%DRIVE_ASSETS.cats.length],350);
+}
+function normalizeAssetKey(value){
+  return norm(value).replace(/\s+/g," ").trim();
+}
+function productAsset(value){
+  const key=normalizeAssetKey(value);
+  const entries=Object.entries(DRIVE_ASSETS.products);
+  const found=entries.find(([name])=>key===name||key.includes(name)||name.includes(key));
+  return found?driveImg(found[1],250):catAsset(2);
+}
+function routineAsset(value){
+  const key=normalizeAssetKey(value);
+  const entries=Object.entries(DRIVE_ASSETS.routines);
+  const found=entries.find(([name])=>key===name||key.includes(name)||name.includes(key));
+  return found?driveImg(found[1],250):driveImg(DRIVE_ASSETS.routines.descanso,250);
+}
+function setTimePattern(){
+  const hour=Number(new Intl.DateTimeFormat("en-GB",{
+    timeZone:TZ,
+    hour:"2-digit",
+    hourCycle:"h23"
+  }).format(new Date()));
+
+  let id=DRIVE_ASSETS.patterns.night;
+
+  if(hour>=5&&hour<7)id=DRIVE_ASSETS.patterns.dawn;
+  else if(hour>=7&&hour<12)id=DRIVE_ASSETS.patterns.morning;
+  else if(hour>=12&&hour<18)id=DRIVE_ASSETS.patterns.afternoon;
+  else if(hour>=18&&hour<21)id=DRIVE_ASSETS.patterns.dusk;
+
+  document.documentElement.style.setProperty(
+    "--bg-pattern",
+    `url("${driveImg(id,1600)}")`
+  );
+}
+
 const TZ="America/Santiago";
 const DAY_START=7*60;
 const DAY_END=23*60;
@@ -524,8 +817,7 @@ let app={
     workStart:"09:00",
     workEnd:"17:00",
     popup:true,
-    sound:true,
-    formUrl:""
+    sound:true
   }
 };
 
@@ -728,14 +1020,12 @@ function loadSettings(){
   $("#workEnd").value=app.settings.workEnd;
   $("#alarmPopup").checked=app.settings.popup!==false;
   $("#alarmSound").checked=app.settings.sound!==false;
-  $("#formUrl").value=app.settings.formUrl||""
 }
 function saveSettings(){
   app.settings.workStart=$("#workStart").value||"09:00";
   app.settings.workEnd=$("#workEnd").value||"17:00";
   app.settings.popup=$("#alarmPopup").checked;
   app.settings.sound=$("#alarmSound").checked;
-  app.settings.formUrl=$("#formUrl").value.trim();
   localStorage.setItem("nicoDays.focus.settings",JSON.stringify(app.settings))
 }
 function loadStoredRoutines(){
@@ -894,7 +1184,7 @@ function renderTasks(){
     const el=document.createElement("div");el.className="task-card";
     const repeat=t.recurrence!=="once"?'<span class="mini-pill">🔁 '+recurrenceLabel(t)+'</span>':"";
     const due=t.due?`vence ${shortDate(t.due)}`:"sin fecha límite";
-    el.innerHTML=`<div class="task-icon">${taskIcon(t)}</div><div class="task-copy"><strong>${esc(t.name)}</strong><p>${esc(t.course||t.product)} · ${humanMin(t.duration)} · ${due}</p><div class="task-meta">${repeat}<span class="mini-pill lav">${esc(t.priority)}</span></div></div><div class="task-tail">›</div>`;
+    el.innerHTML=`<div class="task-icon"><img src="${productAsset(t.product)}" alt=""></div><div class="task-copy"><strong>${esc(t.name)}</strong><p>${esc(t.course||t.product)} · ${humanMin(t.duration)} · ${due}</p><div class="task-meta">${repeat}<span class="mini-pill lav">${esc(t.priority)}</span></div></div><div class="task-tail">›</div>`;
     el.onclick=()=>openDetail(t,null);root.append(el)
   })
 }
@@ -905,7 +1195,7 @@ function renderRoutines(){
   const root=$("#routineGrid");root.innerHTML="";
   app.routines.forEach((r,i)=>{
     const el=document.createElement("div");el.className="routine-card";
-    el.innerHTML=`<h4>${esc(r.activity)}</h4><div class="inline-fields"><label class="field"><span>Hora</span><input type="time" value="${esc(r.time)}" data-key="time"></label><label class="field"><span>Duración</span><input type="number" min="5" step="5" value="${+r.duration||5}" data-key="duration"></label></div><label class="field"><span>Detalle</span><input value="${esc(r.detail||"")}" data-key="detail"></label><button class="btn ghost" data-remove="${i}">Eliminar</button>`;
+    el.innerHTML=`<div class="routine-card-head"><div class="routine-thumb"><img src="${routineAsset(r.activity)}" alt=""></div><h4>${esc(r.activity)}</h4></div><div class="inline-fields"><label class="field"><span>Hora</span><input type="time" value="${esc(r.time)}" data-key="time"></label><label class="field"><span>Duración</span><input type="number" min="5" step="5" value="${+r.duration||5}" data-key="duration"></label></div><label class="field"><span>Detalle</span><input value="${esc(r.detail||"")}" data-key="detail"></label><button class="btn ghost" data-remove="${i}">Eliminar</button>`;
     el.querySelectorAll("input").forEach(inp=>inp.onchange=()=>{r[inp.dataset.key]=inp.dataset.key==="duration"?Math.max(5,+inp.value||5):inp.value;saveRoutines();buildPlan();renderAll()});
     el.querySelector("[data-remove]").onclick=()=>{app.routines.splice(i,1);saveRoutines();buildPlan();renderAll()};root.append(el)
   })
@@ -959,8 +1249,9 @@ function checkAlarms(){
 }
 function fireAlarm(block,key){
   app.alarmTask={block,key};
-  const cats=["🐱","🐈","😺","🐈‍⬛"],phrases=["¡Miau! Es hora de empezar.","Tu próxima misión te espera ✨","Un bloque a la vez, humano 🌿","¡Patitas listas! Empezamos."];
-  $("#alarmCat").textContent=cats[Math.floor(Math.random()*cats.length)];
+  const catIndex=Math.floor(Math.random()*DRIVE_ASSETS.cats.length);
+  const phrases=["¡Miau! Es hora de empezar.","Tu próxima misión te espera ✨","Un bloque a la vez, humano 🌿","¡Patitas listas! Empezamos."];
+  $("#alarmCatImg").src=catAsset(catIndex);
   $("#alarmBubble").textContent=phrases[Math.floor(Math.random()*phrases.length)];
   $("#alarmTaskName").textContent=block.task.name;
   $("#alarmTaskMeta").textContent=`${minToTime(block.start)}–${minToTime(block.end)} · ${humanMin(block.end-block.start)}${block.recurring?" · 🔁 recurrente":""}`;
@@ -994,10 +1285,23 @@ $("#prevWeek").onclick=()=>{app.weekStart=addDays(app.weekStart,-7);buildPlan();
 $("#nextWeek").onclick=()=>{app.weekStart=addDays(app.weekStart,7);buildPlan();renderCalendar()};
 $("#thisWeek").onclick=()=>{app.weekStart=startOfWeek(new Date());buildPlan();renderCalendar()};
 $("#replanWeek").onclick=$("#replanToday").onclick=()=>{saveSettings();buildPlan();renderAll();toast("Calendario recalculado ✦")};
-$("#refreshTasks").onclick=()=>loadData();
+$("#refreshTasks").onclick=()=>initDriveVisuals();
+loadData();
 $("#taskFilters").onclick=e=>{const b=e.target.closest("[data-filter]");if(!b)return;app.taskFilter=b.dataset.filter;$$(".chip").forEach(x=>x.classList.toggle("active",x===b));renderTasks()};
-$("#saveFormUrl").onclick=()=>{saveSettings();toast("Enlace del formulario guardado ✓")};
-$("#openForm").onclick=()=>{saveSettings();if(app.settings.formUrl)window.open(app.settings.formUrl,"_blank","noopener");else toast("Primero pega el enlace de Google Forms.")};
+$("#openForm").onclick=()=>{
+  $("#formFrame").src=FORM_URL;
+  $("#formBackdrop").classList.remove("hidden");
+};
+$("#closeForm").onclick=()=>{
+  $("#formBackdrop").classList.add("hidden");
+  $("#formFrame").src="about:blank";
+};
+$("#formBackdrop").onclick=e=>{
+  if(e.target===e.currentTarget){
+    e.currentTarget.classList.add("hidden");
+    $("#formFrame").src="about:blank";
+  }
+};
 $("#workStart").onchange=$("#workEnd").onchange=()=>{saveSettings();buildPlan();renderAll()};
 $("#alarmPopup").onchange=$("#alarmSound").onchange=saveSettings;
 $("#enableNotifications").onclick=async()=>{
@@ -1019,7 +1323,16 @@ $("#floatingCat").onclick=()=>{
   const msgs=["Miau. Una tarea a la vez 🐾","No necesitas terminar el día entero ahora.","Tu calendario está para ayudarte, no para perseguirte.","Hidrátate, humano 🌿"];
   toast(msgs[Math.floor(Math.random()*msgs.length)]);meow()
 };
-setInterval(()=>{updateNow();checkAlarms()},15000);
+
+function initDriveVisuals(){
+  $("#brandCat").src=catAsset(0);
+  $("#heroCatImg").src=catAsset(1);
+  $("#floatingCatImg").src=catAsset(2);
+  $("#alarmCatImg").src=catAsset(3);
+  setTimePattern();
+}
+
+setInterval(()=>{updateNow();checkAlarms();setTimePattern()},15000);
 loadData();
 </script>
 </body>
